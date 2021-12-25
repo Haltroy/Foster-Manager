@@ -1,12 +1,12 @@
 # Foster Manager (Foster Manager)
 
-A command-line tool for managing Fosters.
+A command-line tool for managing [`Foster`]().
 
 ## Versions
 
-<!-- **Latest Stable** Version: **[`1.0.0.0`](https://github.com/Haltroy/Foster/releases/tag/1.0.0.0-preview1)** -->
+<!-- **Latest Stable** Version: **[`1.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0-preview1)** -->
 
-**Latest Development** Version: **[`1.0.0.0-preview1`](https://github.com/Haltroy/Foster/releases/tag/1.0.0.0-preview1)**
+**Latest Development** Version: **[`1.0.0.0-preview1`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0-preview1)**
 
 ## Features
 
@@ -17,17 +17,27 @@ A command-line tool for managing Fosters.
 
 ## Requirements
 
-Foster Manager can be installed by package managers or can be used in a folder without installing it.
+Foster Manager can be installed by package managers (see [this](https://github.com/Haltroy/Foster-Manager/blob/master/INSTALL.md)) or can be used in a folder without installing it.
 
 - .NET Core 3.1 supported machine (see [this document](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1-supported-os.md))
   - NOTE: The Official Document for .NET Core 3.1 might not include every operating system (such as Arch Linux), in order to learn if you operating system supports it or not, search on the internet (for example, I learned that Arch Linux supports .NET Core 3.1 by just typing `dotnet arch` into Google.)
 - .NET Core 3.1 or newer installed on machine (required only for framework-dependent packages)
 
+## Development
+
+Foster can be developed under any operating systems. The only requirement is that .NET SDK (in most package managers, `dotnet-sdk`) should be installed to the machine.
+
+If you dualboot your system with 2 completely different operating systems (ex. Windows 10/11 & any GNU/Linux distribution), please execute the `cleanup.py` Python script before development. This will fix most of the problems with OmniSharp.
+
+If you are a package manager maintainer for an operationg system, feel free to create them. Just don't forget to check the `Program.cs` file first and put the upstream link so your users can contact me about anything. Thanks.
+
+You can use the `build.py` Python script to auto-build for all architectures or just some of them.
+
 ## Usage
 
 Foster Manager can only be used in command-line, you can use the command-line tool that already comes with your operating system (Terminal, PowerShell, CMD, Konsole, etc.). 
 
-To install Foster Manager, follow [this instructions](https://github.com/Haltroy/Foster/blob/master/Foster%20Manager/INSTALL.md).
+To install Foster Manager, follow [this instructions](https://github.com/Haltroy/Foster-Manager/blob/master/INSTALL.md).
 
 To see all available commands, run Foster Manager with `--help` option: `fosterman.exe --help`
 

@@ -4,7 +4,10 @@ Foster Manager can be used without installing it, but you can still install it i
 
 To use Foster Mananager without installing, open a command prompt/terminal emulator and navigate to the folder which hosts the program.
 
-In *nix systems (such as GNU/Linux distribution such as Debian, Fedora, openSUSE, Arch Linux, Gentoo, Void Linux and all other distibutions), you have to make the file executable with this command: `sudo chmod +x ./fosterman` if it's not already.
+In *nix systems (such as GNU/Linux distributions, macOS etc.), you have to make the file (inside the archive files or tarballs) executable with this command: `sudo chmod +x ./fosterman` if it's not already.
+
+## Package Managers
+Currently, no package manager contains this program. The package maintainers for each system can create packages for free but certain procedures metioned in README file must be done in order so Foster manager can work properly. If you are a maintainer, you can create a fork to add yours link below.
 
 ## Windows
 First, determine which architecture you should download.
@@ -21,15 +24,15 @@ And finally, start the installer by opening it. If an antivirus blocks the proce
 To learn what is your processor architecture is, open a terminal editor and type this: `$ uname -a`. 
 
 The output looks similar to this: `Linux HALTROY-WIN10 5.10.16.3-microsoft-standard-WSL2 #1 SMP Fri Apr 2 22:23:49 UTC 2021 `**`x86_64`**` GNU/Linux` 
-The translation of each processor are:
- - `x86`, `arm` and `arm64` stay same.
- - `x86_64` or `x64` is `amd64`.
 
+If your system is either `amd64` or `x86_64`, use `x64` package.
 
 Some file managers such as KDE's Dolphin includes file verification. To do this, open up properties and navigate to `Checksums` tab. Then, copy any of the file checksum you want and wait until it verifies.
 
 Download the tarball which is designed to your architecture in [Releases page](https://github.com/haltroy/foster/releases/). Names of file looks like this: `fosterman-[Processor type].tar...`
 
-Verify the files with this command: `echo "[Checksum] *[File name]" | shasum -a 256 --check` or `echo "[Checksum] *[File name]" | md5sum -c` then extract it. Copy the file to `/usr/local/bin` folder or add the directory that hosts the Foster Manager into your path variable.
+Verify the files with this command: `echo "[Checksum] *[File name]" | shasum -a 256 --check` or `echo "[Checksum] *[File name]" | md5sum -c` then extract it. 
+
+Copy the file to `/usr/local/bin` folder or add the directory that hosts the Foster Manager into your path variable.
 
 Now, you can execute Foster Manager from your favorite terminal emulator.

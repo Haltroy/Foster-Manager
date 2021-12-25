@@ -2,7 +2,7 @@
 
 Copyright © 2021 - 2022 haltroy
 
-Use of this source code is governed by a GNU General Public License version 3.0 that can be found in github.com/haltroy/Foster/blob/master/COPYING
+Use of this source code is governed by a GNU General Public License version 3.0 that can be found in github.com/haltroy/Foster-Manager/blob/master/COPYING
 
 */
 
@@ -13,16 +13,26 @@ using System.Linq;
 
 namespace Foster_Manager
 {
+    // NOTES TO PACKAGE MAINTAINERS:
+    // 1- Before building, please change the "RuntimeIdentifier" in "Foster Manager.csproj" file (with Microsoft's RIDs) and also
+    // change value of "Arch" below (with Foster's Architectures). Also, change value of "Dev" to your username.
+    // Microsoft RIDs: win-x86 win-x64 win-arm win-arm64 linux-x64 linux-x86 linux-musl-x64 linux-arm linux-arm64 osx-x64
+    // Foster Archs: see https://github.com/Foster/tree/master/Foster%20Examples/Archs.md
+
+    // NOTES TO CUSTOMIZATION:
+    // To add new packers or parsers, add them into the HookParsersAndPackers() coid below and then build it.
     internal class Program
     {
         private static class Versioning
         {
-            public static string Version => "1.0.0.0";
-            public static string Dev => "haltroy";
+            public static string Version => "1.0.0.0"; // <-- DO NOT CHANGE THIS
+            public static string Dev => "haltroy"; // <-- Change this
+            public static string Arch => "noarch"; // <-- Change this
         }
 
         private static void HookParsersAndPackers()
         {
+            // NOTE: Add your own parsers and packers below. You can use the examples below to add. It's not thst hsrd dude you probably better than me in C++ this should be a piece of cake to you.
             new FosterPackerGZip().Register();
             new FosterPackerDeflate().Register();
         }
@@ -31,7 +41,9 @@ namespace Foster_Manager
         {
             HookParsersAndPackers();
             bool verbose = args.Contains("--verbose") || args.Contains("-v");
+            bool nologo = args.Contains("--no-logo") || args.Contains("-n");
             FosterSettings.Verbose = verbose;
+            if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info warranty'." + Environment.NewLine + "This is free software, and you are welcome to redistribute it under certain conditions; type `info conditions' for details." + Environment.NewLine + "This software is protected with GNU General Public License version 3.0; type `info license' or 'info copyright' for details."); }
             if (verbose) { Console.WriteLine("Foster Initialize complete with " + FosterSettings.Parsers.Length + " parser(s) and " + FosterSettings.Packers.Length + " packer(s)."); }
             string htumanName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
             if (args.Length <= 0 || args.Contains("--help") || args.Contains("help") || args.Contains("-h") || args.Contains("?") || args.Contains("/?"))
@@ -40,11 +52,20 @@ namespace Foster_Manager
                 Console.WriteLine("--------------------");
                 Console.WriteLine("");
                 Console.WriteLine("USAGE:");
-                Console.WriteLine("      fosterman [--verbose|-v] [-help|-h|help|*|/?|version|pack|unpack|delta|update|create] [OPTIONS]");
+                Console.WriteLine("      fosterman [--verbose|-v] [--no-logo|-n] [-help|-h|help|*|/?|info|pack|unpack|delta|update|create] [OPTIONS]");
                 Console.WriteLine("OPTIONS:");
                 Console.WriteLine("help --help -h /? ?                                         Shows this information.");
-                Console.WriteLine("info                                                        Shows information about this program.");
                 Console.WriteLine("--verbose -v                                                Shows more information while doing something.");
+                Console.WriteLine("--no-logo -n                                                Hides the copyright information on run.");
+                Console.WriteLine("info [OPTIONS]                                              Shows information about this program.");
+                if (verbose)
+                {
+                    Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
+                    Console.WriteLine("     copyright = shows the copyright notice.");
+                    Console.WriteLine("     warranty = Shows the warranty notice.");
+                    Console.WriteLine("     conditions = Shows the conditions notice.");
+                    Console.WriteLine("     license = Shows the GNU General Public License version 3.0.");
+                }
                 Console.WriteLine("pack [Folder Path] [OPTIONS]                                Packs a folder into a Foster compatible package file.");
                 if (verbose)
                 {
@@ -142,7 +163,72 @@ namespace Foster_Manager
             }
             if (args.Contains("info"))
             {
-                Console.WriteLine(Versioning.Version + "." + Versioning.Dev);
+                int singleArgLoc = Array.IndexOf(args, "info");
+                if (args.Length - 1 > singleArgLoc)
+                {
+                    string infoArg = args[singleArgLoc + 1];
+                    switch (infoArg.ToLowerEnglish())
+                    {
+                        case "warranty":
+                            Console.WriteLine("");
+                            Console.WriteLine("Please see sections 15, 16 and additionally 17 in license." + (verbose ? (Environment.NewLine + "The entire license can be found by using \"info license\" argument.") : ""));
+                            Console.WriteLine("");
+                            break;
+
+                        case "conditions":
+                            Console.WriteLine("");
+                            Console.WriteLine("Please see sections, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 and 14 in license." + (verbose ? (Environment.NewLine + "The entire license can be found by using \"info license\" argument.") : ""));
+                            Console.WriteLine("");
+                            break;
+
+                        case "copyright":
+                            Console.WriteLine("");
+                            Console.WriteLine("Command-line utility for managing Fosters." + Environment.NewLine +
+"Copyright (C) " + DateTime.Now.Year + " " + Versioning.Dev + Environment.NewLine
++ Environment.NewLine +
+"This program is free software: you can redistribute it and/or modify" + Environment.NewLine +
+"it under the terms of the GNU General Public License as published by" + Environment.NewLine +
+"the Free Software Foundation, either version 3 of the License, or" + Environment.NewLine +
+"(at your option) any later version." + Environment.NewLine
++ Environment.NewLine +
+"This program is distributed in the hope that it will be useful," + Environment.NewLine +
+"but WITHOUT ANY WARRANTY; without even the implied warranty of" + Environment.NewLine +
+"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the" + Environment.NewLine +
+"GNU General Public License for more details." + Environment.NewLine
++ Environment.NewLine +
+"You should have received a copy of the GNU General Public License" + Environment.NewLine +
+"along with this program.  If not, see <https://www.gnu.org/licenses/>.");
+                            Console.WriteLine("");
+                            break;
+
+                        case "license":
+                            Console.WriteLine("");
+                            Console.WriteLine(Properties.Resources.license);
+                            Console.WriteLine("");
+                            break;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("");
+                    Console.WriteLine("Dev: " + Versioning.Dev);
+                    Console.WriteLine("Version: " + Versioning.Version);
+                    Console.WriteLine("Arch: " + Versioning.Arch);
+                    Console.WriteLine("Foster Version: " + Foster.FosterSettings.FosterVersion);
+                    string parsers = string.Empty;
+                    string packers = string.Empty;
+                    for (int i = 0; i < Foster.FosterSettings.Parsers.Length; i++)
+                    {
+                        parsers += Foster.FosterSettings.Parsers[i].ParserName + " ";
+                    }
+                    for (int i = 0; i < Foster.FosterSettings.Packers.Length; i++)
+                    {
+                        packers += Foster.FosterSettings.Packers[i].PackerName + " ";
+                    }
+                    Console.WriteLine("Foster Parser(s): " + parsers);
+                    Console.WriteLine("Foster Packer(s): " + packers);
+                    Console.WriteLine("");
+                }
                 return;
             }
             if (args.Contains("pack"))

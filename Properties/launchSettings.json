@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Foster Manager": {
+      "commandName": "Project",
+      "commandLineArgs": "-v info license"
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "environmentVariables": {},
+      "distributionName": ""
+    }
+  }
+}
