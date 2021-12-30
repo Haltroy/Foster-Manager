@@ -32,7 +32,8 @@ namespace Foster_Manager
 
         private static void HookParsersAndPackers()
         {
-            // NOTE: Add your own parsers and packers below. You can use the examples below to add. It's not thst hsrd dude you probably better than me in C++ this should be a piece of cake to you.
+            // NOTE: Add your own parsers and packers below. You can use the examples below to add.
+            // It's not thst hsrd dude you probably better than me in C++ this should be a piece of cake to you.
             new FosterPackerGZip().Register();
             new FosterPackerDeflate().Register();
         }
@@ -52,7 +53,7 @@ namespace Foster_Manager
                 Console.WriteLine("--------------------");
                 Console.WriteLine("");
                 Console.WriteLine("USAGE:");
-                Console.WriteLine("      fosterman [--verbose|-v] [--no-logo|-n] [-help|-h|help|*|/?|info|pack|unpack|delta|update|create] [OPTIONS]");
+                Console.WriteLine("      fosterman [--verbose|-v] [--no-logo|-n] [-help|-h|help|*|/?|info|clean|query|pack|unpack|delta|update|create] [OPTIONS]");
                 Console.WriteLine("OPTIONS:");
                 Console.WriteLine("help --help -h /? ?                                         Shows this information.");
                 Console.WriteLine("--verbose -v                                                Shows more information while doing something.");
@@ -66,6 +67,18 @@ namespace Foster_Manager
                     Console.WriteLine("     conditions = Shows the conditions notice.");
                     Console.WriteLine("     license = Shows the GNU General Public License version 3.0.");
                 }
+                Console.WriteLine("clean                                                      Cleans the Foster temporary folder.");
+                Console.WriteLine("query [URL]                                                Gets information about a Foster file on Web.");
+                if (verbose)
+                {
+                    Console.WriteLine("[URL] = Location of the Foster file on Web.");
+                }
+                Console.WriteLine("adelta [File Path] [Folder Path]                            Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
+                if (verbose)
+                {
+                    Console.WriteLine("[Folder Path] = Path of the folder to apply delta on.");
+                    Console.WriteLine("[File Path] = Path of the delta package that will be applied.");
+                }
                 Console.WriteLine("pack [Folder Path] [OPTIONS]                                Packs a folder into a Foster compatible package file.");
                 if (verbose)
                 {
@@ -75,9 +88,10 @@ namespace Foster_Manager
                     Console.WriteLine("     -Output [File Path] = Path of the package file that will be created.");
                     Console.WriteLine("     -a [Algorithm] = Similar to \"-Algorithm\" parameter.");
                     Console.WriteLine("     -Algorithm [Algorithm] = The compression algorithm that will be used to compress the package file. Valid options are:");
-                    Console.WriteLine("          none (0) = No compression will be applied.");
-                    Console.WriteLine("          gzip (1) = GZip compression will be applied.");
-                    Console.WriteLine("          deflate (2) = Deflate will be applied.");
+                    for (int i = 0; i < FosterSettings.Packers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Packers[i].PackerName + "(" + i + ") ");
+                    }
                 }
                 Console.WriteLine("unpack [File Path] [OPTIONS]                                Packs a folder into a Foster compatible package file." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
@@ -96,9 +110,10 @@ namespace Foster_Manager
                     Console.WriteLine("     -Output [File Path] = Path of the delta package that will be created.");
                     Console.WriteLine("     -a [Algorithm] = The compression algorithm that will be used to compress the package file. Valid options are:");
                     Console.WriteLine("     -Algorithm [Algorithm] = The compression algorithm that will be used to compress the package file. Valid options are:");
-                    Console.WriteLine("          none (0) = No compression will be applied.");
-                    Console.WriteLine("          gzip (1) = GZip compression will be applied.");
-                    Console.WriteLine("          deflate (2) = Deflate will be applied.");
+                    for (int i = 0; i < FosterSettings.Packers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Packers[i].PackerName + "(" + i + ") ");
+                    }
                 }
                 Console.WriteLine("adelta [File Path] [Folder Path]                            Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
@@ -151,13 +166,16 @@ namespace Foster_Manager
                     Console.WriteLine("     --skip-hashes = Skips the hash-checking part. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
                     Console.WriteLine("     -a [Algorithm] = Similar to \"-Algorithm\"");
                     Console.WriteLine("     -Algorithm [Algorithm] = The compression algorithm that will be used to compress the package files. Valid options are:");
-                    Console.WriteLine("          none (0) = No compression will be applied.");
-                    Console.WriteLine("          gzip (1) = GZip compression will be applied.");
-                    Console.WriteLine("          deflate (2) = Deflate will be applied.");
-                    Console.WriteLine("          deflate (2) = Deflate will be applied.");
+                    for (int i = 0; i < FosterSettings.Packers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Packers[i].PackerName + "(" + i + ") ");
+                    }
                     Console.WriteLine("     -p [Parser] = Similar to \"-Parser\"");
                     Console.WriteLine("     -Parser [Parser] = The parser that will be used to create Foster file. Valid options are:");
-                    Console.WriteLine("          xml (0) = XML Foster file.");
+                    for (int i = 0; i < FosterSettings.Parsers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Parsers[i].ParserName + "(" + i + ") ");
+                    }
                 }
                 return;
             }
@@ -225,10 +243,43 @@ namespace Foster_Manager
                     {
                         packers += Foster.FosterSettings.Packers[i].PackerName + " ";
                     }
-                    Console.WriteLine("Foster Parser(s): " + parsers);
-                    Console.WriteLine("Foster Packer(s): " + packers);
+                    Console.WriteLine("Foster Parser(s): [" + FosterSettings.Parsers.Length + "]" + parsers);
+                    Console.WriteLine("Foster Packer(s): [" + FosterSettings.Packers.Length + "]" + packers);
                     Console.WriteLine("");
                 }
+                return;
+            }
+            if (args.Contains("clean"))
+            {
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+                try
+                {
+                    var foster = new Foster.Foster();
+                    if (verbose)
+                    {
+                        Console.WriteLine("Cleaning temporary folder \"" + foster.TempFolder + "\"...");
+                    }
+                    long size = Tools.GetDirSize(foster.TempFolder);
+                    if (Tools.HasWriteAccess(foster.TempFolder))
+                    {
+                        System.IO.Directory.Delete(foster.TempFolder, true);
+                        if (verbose)
+                        {
+                            Console.WriteLine("Cleaned temporary folder.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Cannot clean temporary folder, no permission.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error while cleaning, exception caught:" + ex.ToString());
+                }
+                sw.Stop();
+                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("pack"))
@@ -642,7 +693,7 @@ namespace Foster_Manager
                 {
                     if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
                     string curFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
-                    string verFile = System.IO.Path.Combine(curFolder, System.IO.Path.DirectorySeparatorChar + ".htuman");
+                    string verFile = System.IO.Path.Combine(curFolder, System.IO.Path.DirectorySeparatorChar + ".fosterman");
                     string uri = args[singleArgLoc + 2];
                     int cver = System.IO.File.Exists(verFile) ? int.Parse(Tools.ReadFile(verFile, System.Text.Encoding.Unicode)) : 0;
                     string arch = "noarch";
@@ -978,6 +1029,122 @@ namespace Foster_Manager
                 catch (Exception ex)
                 {
                     Console.WriteLine("Error while installing, exception caught:" + ex.ToString());
+                }
+                sw.Stop();
+                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                return;
+            }
+            if (args.Contains("query"))
+            {
+                int singleArgLoc = Array.IndexOf(args, "query");
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+                try
+                {
+                    if (args.Length < singleArgLoc + 1) { Console.WriteLine(" [E] Not enough information."); return; }
+                    string uri = args[singleArgLoc + 1];
+                    var foster = new Foster.Foster()
+                    {
+                        SkipFileSizeInfo = true,
+                        URL = uri,
+                    };
+                    foster.OnLogEntry += new Foster.Foster.OnLogEntryDelegate((sender, e) =>
+                    {
+                        if (verbose)
+                        {
+                            switch (e.Level)
+                            {
+                                case LogLevel.Hidden:
+                                    break;
+
+                                default:
+                                case LogLevel.None:
+                                    Console.WriteLine(e.LogEntry);
+                                    break;
+
+                                case LogLevel.Info:
+                                    Console.WriteLine(" [I] " + e.LogEntry);
+                                    break;
+
+                                case LogLevel.Warning:
+                                    Console.WriteLine(" [W] " + e.LogEntry);
+                                    break;
+
+                                case LogLevel.Error:
+                                    Console.WriteLine(" [E] " + e.LogEntry);
+                                    break;
+
+                                case LogLevel.Critical:
+                                    Console.WriteLine(" [C] " + e.LogEntry);
+                                    break;
+                            }
+                        }
+                    });
+
+                    foster.LoadFromUrl();
+
+                    Console.WriteLine("Foster Name: " + foster.Name);
+                    Console.WriteLine("Latest Version: " + foster.LatestVer);
+                    Console.WriteLine("Dependencies: [" + (foster.Dependencies != null && foster.Dependencies.Count > 0 ? foster.Dependencies.Count : 0) + "]");
+                    if (verbose)
+                    {
+                        for (int i = 0; i < foster.Dependencies.Count; i++)
+                        {
+                            Console.Write(foster.Dependencies[i].Name);
+                        }
+                        Console.WriteLine();
+                    }
+
+                    Console.WriteLine("Versions: [" + foster.Versions.Count + "]");
+                    if (verbose)
+                    {
+                        for (int i = 0; i <= foster.Versions.Count; i++)
+                        {
+                            var version = foster.Versions[i];
+                            Console.WriteLine("#");
+                            Console.WriteLine("# Version ID: " + version.ID);
+                            Console.WriteLine("# Version Name: " + version.Name);
+                            Console.WriteLine("# based on Version: " + (version.BasedVersion != null ? (version.BasedVersion is int ınt ? "" + ınt : "" + (version.BasedVersion as Foster_Version).ID) : "<none>"));
+                            Console.WriteLine("# Version Flags: " + String.Join(';', version.Flags));
+                            Console.WriteLine("# Version Long-Term Support: " + (version.LTS ? ((version.IsLTSRevoked ? "Revoked in " : "Will revoke in ") + version.LTSRevokeDate) : "<false>"));
+                            Console.WriteLine("# Version Dependencies: [" + version.Dependencies + "]");
+                            for (int ı = 0; ı < version.Dependencies.Count; ı++)
+                            {
+                                var dep = version.Dependencies[ı];
+                                Console.WriteLine("## Dependency Name:" + dep.Dependency.Name);
+                                Console.WriteLine("## Dependency Version:" + dep.RequiredVerID);
+                            }
+                            Console.WriteLine("# Version Arcihectures: [" + version.Archs + "]");
+                            for (int ı = 0; ı < version.Archs.Count; ı++)
+                            {
+                                var arch = version.Archs[ı];
+                                Console.WriteLine("##");
+                                Console.WriteLine("## Architecture Arch:" + arch.Arch);
+                                Console.WriteLine("## Architecture Disk Size:" + arch.DiskSize.ByteToReadable() + " [ " + arch.DiskSize + " ]");
+                                Console.WriteLine("## Architecture Download Size:" + arch.DownloadSize.ByteToReadable() + " [ " + arch.DownloadSize + " ]");
+                                Console.WriteLine("## Architecture URL(s):" + Environment.NewLine + "###" + Environment.NewLine + string.Join(Environment.NewLine + "###", arch.Url) + Environment.NewLine + "###");
+                                Console.WriteLine("## Architecture Hashes: [" + arch.Hashes.Count + "]");
+                                for (int _i = 0; _i < arch.Hashes.Count; _i++)
+                                {
+                                    var hash = arch.Hashes[_i];
+                                    Console.WriteLine("###");
+                                    Console.WriteLine("### Algorithm: " + hash.AlgorithmShortName);
+                                    Console.WriteLine("### Hash: " + hash.Hash);
+                                    Console.WriteLine("###");
+                                }
+                                Console.WriteLine("##");
+                            }
+                            Console.WriteLine("#");
+                        }
+                    }
+                    if (foster.LatestException != null)
+                    {
+                        throw foster.LatestException;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error while getting information, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
