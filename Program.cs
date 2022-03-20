@@ -2,12 +2,12 @@
 
 Copyright © 2021 - 2022 haltroy
 
-Use of this source code is governed by a GNU General Public License version 3.0 that can be found in github.com/haltroy/Foster-Manager/blob/master/COPYING
+Use of this source code is governed by a MIT License that can be found in github.com/haltroy/Foster-Manager/blob/master/COPYING
 
 */
 
-using Foster;
-using Foster.Modules;
+using LibFoster;
+using LibFoster.Modules;
 using System;
 using System.Linq;
 
@@ -30,13 +30,19 @@ namespace Foster_Manager
             public static string Arch => "noarch"; // <-- Change this
         }
 
+        // TODO: Add hook for DLLs in specific directory and register them from assembly.
         private static void HookParsersAndPackers()
         {
             // NOTE: Add your own parsers and packers below. You can use the examples below to add.
-            // It's not thst hsrd dude you probably better than me in C++ this should be a piece of cake to you.
+            // It's not thst hard dude you probably better than me in C++ this should be a piece of cake to you.
             new FosterPackerGZip().Register();
             new FosterPackerDeflate().Register();
+            new FosterXmlParser().Register();
+            new FosterJsonParser().Register();
+            new FosterEncryptionAes().Register();
         }
+
+        // TODO: Add password option for all
 
         private static void Main(string[] args)
         {
@@ -44,7 +50,7 @@ namespace Foster_Manager
             bool verbose = args.Contains("--verbose") || args.Contains("-v");
             bool nologo = args.Contains("--no-logo") || args.Contains("-n");
             FosterSettings.Verbose = verbose;
-            if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info warranty'." + Environment.NewLine + "This is free software, and you are welcome to redistribute it under certain conditions; type `info conditions' for details." + Environment.NewLine + "This software is protected with GNU General Public License version 3.0; type `info license' or 'info copyright' for details."); }
+            if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info warranty'." + Environment.NewLine + "This is free software, and you are welcome to redistribute it under certain conditions; type `info conditions' for details." + Environment.NewLine + "This software is protected with MIT License; type `info license' or 'info copyright' for details."); }
             if (verbose) { Console.WriteLine("Foster Initialize complete with " + FosterSettings.Parsers.Length + " parser(s) and " + FosterSettings.Packers.Length + " packer(s)."); }
             string htumanName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
             if (args.Length <= 0 || args.Contains("--help") || args.Contains("help") || args.Contains("-h") || args.Contains("?") || args.Contains("/?"))
@@ -53,7 +59,7 @@ namespace Foster_Manager
                 Console.WriteLine("--------------------");
                 Console.WriteLine("");
                 Console.WriteLine("USAGE:");
-                Console.WriteLine("      fosterman [--verbose|-v] [--no-logo|-n] [-help|-h|help|*|/?|info|clean|query|pack|unpack|delta|update|create] [OPTIONS]");
+                Console.WriteLine("      fosterman [--verbose|-v] [--no-logo|-n] [-help|-h|help|*|/?|info|clean|query|pack|unpack|delta|update|create|convert|change-encrypt|change-packer|create-info] [OPTIONS]");
                 Console.WriteLine("OPTIONS:");
                 Console.WriteLine("help --help -h /? ?                                         Shows this information.");
                 Console.WriteLine("--verbose -v                                                Shows more information while doing something.");
@@ -65,13 +71,62 @@ namespace Foster_Manager
                     Console.WriteLine("     copyright = shows the copyright notice.");
                     Console.WriteLine("     warranty = Shows the warranty notice.");
                     Console.WriteLine("     conditions = Shows the conditions notice.");
-                    Console.WriteLine("     license = Shows the GNU General Public License version 3.0.");
+                    Console.WriteLine("     license = Shows the MIT License.");
                 }
                 Console.WriteLine("clean                                                      Cleans the Foster temporary folder.");
-                Console.WriteLine("query [URL]                                                Gets information about a Foster file on Web.");
+                Console.WriteLine("query [Path]                                               Gets information about a file.");
                 if (verbose)
                 {
-                    Console.WriteLine("[URL] = Location of the Foster file on Web.");
+                    Console.WriteLine("[Path] = Location of the file on Web or local drive(s).");
+                }
+                Console.WriteLine("convert [Input File] [Output File] [Format]                Converts a Foster information file into a specific format.");
+                if (verbose)
+                {
+                    Console.WriteLine("[Input File] = Path to the original file.");
+                    Console.WriteLine("[Output File] = Path to the edited file.");
+                    Console.WriteLine("[Format] = Format to convert. Supported formats are:");
+                    for (int i = 0; i < FosterSettings.Parsers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Parsers[i].ParserName + "(" + i + ") ");
+                    }
+                }
+                Console.WriteLine("create-info [Path] [Format]                                Creates an empty Foster Information file with no encryption and compression.");
+                if (verbose)
+                {
+                    Console.WriteLine("[Path] = Path to the file.");
+                    Console.WriteLine("[Format] = Format to create. Supported formats are:");
+                    for (int i = 0; i < FosterSettings.Parsers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Parsers[i].ParserName + "(" + i + ") ");
+                    }
+                }
+                Console.WriteLine("change-encrypt [Path] [Format] [Options]                   Changes encryption of a file.");
+                if (verbose)
+                {
+                    Console.WriteLine("[Input File] = Path to the file.");
+                    Console.WriteLine("[Format] = Format to change. Supported formats are:");
+                    for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
+                    }
+                    Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
+                    Console.WriteLine("     -o [Output File] = Path to the output file.");
+                    Console.WriteLine("     -p [Password] = Password of file.");
+                    Console.WriteLine("     -q [Password] = New password of file.");
+                }
+                Console.WriteLine("change-packer [Path] [Format] [Options]                    Changes compression of a file.");
+                if (verbose)
+                {
+                    Console.WriteLine("[Input File] = Path to the file.");
+                    Console.WriteLine("[Format] = Format to change. Supported formats are:");
+                    for (int i = 0; i < FosterSettings.Packers.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Packers[i].PackerName + "(" + i + ") ");
+                    }
+                    Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
+                    Console.WriteLine("     -o [Output File] = Path to the output file.");
+                    Console.WriteLine("     -p [Password] = Password of file.");
+                    Console.WriteLine("     -q [Password] = New password of file.");
                 }
                 Console.WriteLine("adelta [File Path] [Folder Path]                            Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
@@ -232,21 +287,41 @@ namespace Foster_Manager
                     Console.WriteLine("Dev: " + Versioning.Dev);
                     Console.WriteLine("Version: " + Versioning.Version);
                     Console.WriteLine("Arch: " + Versioning.Arch);
-                    Console.WriteLine("Foster Version: " + Foster.FosterSettings.FosterVersion);
+                    Console.WriteLine("Foster Version: " + FosterSettings.FosterVersion);
                     string parsers = string.Empty;
                     string packers = string.Empty;
-                    for (int i = 0; i < Foster.FosterSettings.Parsers.Length; i++)
+                    for (int i = 0; i < FosterSettings.Parsers.Length; i++)
                     {
-                        parsers += Foster.FosterSettings.Parsers[i].ParserName + " ";
+                        parsers += FosterSettings.Parsers[i].ParserName + " ";
                     }
-                    for (int i = 0; i < Foster.FosterSettings.Packers.Length; i++)
+                    for (int i = 0; i < FosterSettings.Packers.Length; i++)
                     {
-                        packers += Foster.FosterSettings.Packers[i].PackerName + " ";
+                        packers += FosterSettings.Packers[i].PackerName + " ";
                     }
                     Console.WriteLine("Foster Parser(s): [" + FosterSettings.Parsers.Length + "]" + parsers);
                     Console.WriteLine("Foster Packer(s): [" + FosterSettings.Packers.Length + "]" + packers);
                     Console.WriteLine("");
                 }
+                return;
+            }
+            if (args.Contains("convert"))
+            {
+                // TODO
+                return;
+            }
+            if (args.Contains("create-info"))
+            {
+                // TODO
+                return;
+            }
+            if (args.Contains("change-encrypt"))
+            {
+                // TODO
+                return;
+            }
+            if (args.Contains("change-packer"))
+            {
+                // TODO
                 return;
             }
             if (args.Contains("clean"))
@@ -255,7 +330,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    var foster = new Foster.Foster();
+                    var foster = new Foster();
                     if (verbose)
                     {
                         Console.WriteLine("Cleaning temporary folder \"" + foster.TempFolder + "\"...");
@@ -706,7 +781,7 @@ namespace Foster_Manager
                         arch = args[Array.IndexOf(args, "-Arch") + 1];
                     }
                     if (string.IsNullOrWhiteSpace(arch)) { arch = "noarch"; }
-                    var htu = new Foster.Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, cver, arch)
+                    var htu = new Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, cver, arch)
                     {
                         SkipFileSizeInfo = true
                     };
@@ -787,7 +862,7 @@ namespace Foster_Manager
                             }
                         }
                     }
-                    htu.OnLogEntry += new Foster.Foster.OnLogEntryDelegate((sender, e) =>
+                    htu.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
                     {
                         if (verbose)
                         {
@@ -880,7 +955,7 @@ namespace Foster_Manager
                         arch = args[Array.IndexOf(args, "-Arch") + 1];
                     }
                     if (string.IsNullOrWhiteSpace(arch)) { arch = "noarch"; }
-                    var htu = new Foster.Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, 0, arch)
+                    var htu = new Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, 0, arch)
                     {
                         SkipFileSizeInfo = true
                     };
@@ -961,7 +1036,7 @@ namespace Foster_Manager
                             }
                         }
                     }
-                    htu.OnLogEntry += new Foster.Foster.OnLogEntryDelegate((sender, e) =>
+                    htu.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
                     {
                         if (verbose)
                         {
@@ -1043,12 +1118,12 @@ namespace Foster_Manager
                 {
                     if (args.Length < singleArgLoc + 1) { Console.WriteLine(" [E] Not enough information."); return; }
                     string uri = args[singleArgLoc + 1];
-                    var foster = new Foster.Foster()
+                    var foster = new Foster()
                     {
                         SkipFileSizeInfo = true,
                         URL = uri,
                     };
-                    foster.OnLogEntry += new Foster.Foster.OnLogEntryDelegate((sender, e) =>
+                    foster.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
                     {
                         if (verbose)
                         {

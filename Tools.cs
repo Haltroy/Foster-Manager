@@ -2,7 +2,7 @@
 
 Copyright © 2021 - 2022 haltroy
 
-Use of this source code is governed by a GNU General Public License version 3.0 that can be found in github.com/haltroy/Foster/blob/master/COPYING
+Use of this source code is governed by a MIT License that can be found in github.com/haltroy/Foster/blob/master/COPYING
 
 */
 
@@ -24,7 +24,7 @@ namespace Foster_Manager
         /// Detects if user can access <paramref name="dir"/> by try{} method.
         /// </summary>
         /// <param name="dir">Directory</param>
-        /// <returns><see cref="true"/> if can access to folder, <seealso cref="false"/> if user has no access to <paramref name="dir"/> and throws <see cref="Exception"/> on other scenarios.</returns>
+        /// <returns><c>true</c> if can access to folder, <c>false</c> if user has no access to <paramref name="dir"/> and throws <see cref="Exception"/> on other scenarios.</returns>
         public static bool HasWriteAccess(this string dir)
         {
             try
@@ -319,7 +319,7 @@ namespace Foster_Manager
         /// <param name="fileLocation">Location of the file.</param>
         /// <param name="input">Text to write on.</param>
         /// <param name="encode">Rules to follow while writing.</param>
-        /// <returns><sse cref=true"/> if successfully writes to file, otherwise throws an exception.</returns>
+        /// <returns><c>true</c> if successfully writes to file, otherwise throws an exception.</returns>
         public static void WriteFile(string fileLocation, string input, Encoding encode)
         {
             if (!Directory.Exists(new FileInfo(fileLocation).DirectoryName)) { Directory.CreateDirectory(new FileInfo(fileLocation).DirectoryName); }
@@ -341,7 +341,7 @@ namespace Foster_Manager
         /// </summary>
         /// <param name="fileLocation">Location of the file.</param>
         /// <param name="input">Bytes to write on.</param>
-        /// <returns><sse cref=true"/> if successfully writes to file, otherwise throws an exception.</returns>
+        /// <returns><c>true</c> if successfully writes to file, otherwise throws an exception.</returns>
         public static void WriteFile(string fileLocation, byte[] input)
         {
             if (!Directory.Exists(new FileInfo(fileLocation).DirectoryName)) { Directory.CreateDirectory(new FileInfo(fileLocation).DirectoryName); }
@@ -363,7 +363,7 @@ namespace Foster_Manager
         /// </summary>
         /// <param name="fileLocation">Location of the file.</param>
         /// <param name="stream">Stream to write on.</param>
-        /// <returns><sse cref=true"/> if successfully writes to file, otherwise throws an exception.</returns>
+        /// <returns><c>true</c> if successfully writes to file, otherwise throws an exception.</returns>
         public static void WriteFile(string fileLocation, Stream stream)
         {
             if (!Directory.Exists(new FileInfo(fileLocation).DirectoryName)) { Directory.CreateDirectory(new FileInfo(fileLocation).DirectoryName); }
@@ -500,10 +500,10 @@ namespace Foster_Manager
         }
 
         /// <summary>
-        /// Return <sse cref=true"/> if path directory is empty.
+        /// Return <c>true</c> if path directory is empty.
         /// </summary>
         /// <param name="path">Directory path to check.</param>
-        /// <returns><sse cref=true"/> if the directory is empty, otherwise <sse cref=false"/>.</returns>
+        /// <returns><c>true</c> if the directory is empty, otherwise <c>false</c>.</returns>
         public static bool IsDirectoryEmpty(string path)
         {
             if (Directory.Exists(path))

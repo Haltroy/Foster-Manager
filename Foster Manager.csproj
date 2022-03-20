@@ -5,16 +5,21 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Foster_Manager</RootNamespace>
     <AssemblyName>fosterman</AssemblyName>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <PublishTrimmed>true</PublishTrimmed>
-    <!-- <PublishReadyToRun>true</PublishReadyToRun> 
-    <DebugType>embedded</DebugType>-->
+    <!-- <PublishReadyToRun>true</PublishReadyToRun> -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 	<ItemGroup>
     <ProjectReference Include="..\Foster\Foster.csproj" />
+    <ProjectReference Include="..\Modules\FosterCryptAes\FosterCryptAes.csproj" />
+    <ProjectReference Include="..\Modules\FosterPackerDeflate\FosterPackerDeflate.csproj" />
+    <ProjectReference Include="..\Modules\FosterPackerGZip\FosterPackerGZip.csproj" />
+    <ProjectReference Include="..\Modules\FosterParserJSON\FosterParserJSON.csproj" />
+    <ProjectReference Include="..\Modules\FosterParserXml\FosterParserXml.csproj" />
   </ItemGroup>
 
 	<ItemGroup>
