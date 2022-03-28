@@ -10,31 +10,59 @@ using LibFoster;
 using LibFoster.Modules;
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace Foster_Manager
 {
     // NOTES TO PACKAGE MAINTAINERS:
     // 1- Before building, please change the "RuntimeIdentifier" in "Foster Manager.csproj" file (with Microsoft's RIDs) and also
-    // change value of "Arch" below (with Foster's Architectures). Also, change value of "Dev" to your username.
+    // change value of "Arch" below (with Foster's Architectures). Also, change value of "Dev" to your username or the distribution name.
     // Microsoft RIDs: win-x86 win-x64 win-arm win-arm64 linux-x64 linux-x86 linux-musl-x64 linux-arm linux-arm64 osx-x64
     // Foster Archs: see https://github.com/Foster/tree/master/Foster%20Examples/Archs.md
 
     // NOTES TO CUSTOMIZATION:
-    // To add new packers or parsers, add them into the HookParsersAndPackers() coid below and then build it.
+    // To add new packers/parsers/encryptions, add them into the HookParsersAndPackers() void below and then build it. Or you can add their DLL files to HookLoc and GlobalHookLoc folders.
     internal class Program
     {
         private static class Versioning
         {
-            public static string Version => "1.0.0.0"; // <-- DO NOT CHANGE THIS
+            public static string Version => "2.0.0.0"; // <-- DO NOT CHANGE THIS
             public static string Dev => "haltroy"; // <-- Change this
             public static string Arch => "noarch"; // <-- Change this
         }
 
-        // TODO: Add hook for DLLs in specific directory and register them from assembly.
-        private static void HookParsersAndPackers()
+        private static string HookLoc => System.IO.Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fosterman" + System.IO.Path.DirectorySeparatorChar + "hooks");
+        private static string GlobalHookLoc => System.IO.Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "fosterman" + System.IO.Path.DirectorySeparatorChar + "hooks");
+
+        private static void HookParsersAndPackers(bool skipFolder = false)
         {
-            // NOTE: Add your own parsers and packers below. You can use the examples below to add.
-            // It's not thst hard dude you probably better than me in C++ this should be a piece of cake to you.
+            // This code below auto-registers any parser/encryptor/packer in HookLoc and GlobalHookLoc folder. They only have to be a DLL file and must include a class with Register
+            // void that registers the said extension to FosterSettings.
+            if (!skipFolder)
+            {
+                if (!System.IO.Directory.Exists(HookLoc))
+                {
+                    System.IO.Directory.CreateDirectory(HookLoc);
+                }
+                var hooks = System.IO.Directory.GetFiles(HookLoc, "*.dll", System.IO.SearchOption.TopDirectoryOnly).Concat(System.IO.Directory.GetFiles(GlobalHookLoc, "*.dll", System.IO.SearchOption.TopDirectoryOnly)).ToArray();
+                for (int i = 0; i < hooks.Length; i++)
+                {
+                    var dll = Assembly.LoadFile(hooks[i]);
+                    Type[] exportedTypes = dll.GetExportedTypes();
+                    for (int i1 = 0; i1 < exportedTypes.Length; i1++)
+                    {
+                        Type type = exportedTypes[i1];
+                        try
+                        {
+                            var c = Activator.CreateInstance(type);
+                            type.InvokeMember("Register", BindingFlags.InvokeMethod, null, c, null);
+                        }
+                        catch (Exception) { continue; } // ignored.
+                    }
+                }
+            }
+            // NOTE: Add your own parsers, encryptors and packers below. You can use the examples below to add.
+            // It's not that hard dude you probably better than me in C++ this should be a piece of cake to you.
             new FosterPackerGZip().Register();
             new FosterPackerDeflate().Register();
             new FosterXmlParser().Register();
@@ -42,17 +70,16 @@ namespace Foster_Manager
             new FosterEncryptionAes().Register();
         }
 
-        // TODO: Add password option for all
-
         private static void Main(string[] args)
         {
+            bool skipFolder = args.Contains("--verbose") || args.Contains("-");
             HookParsersAndPackers();
             bool verbose = args.Contains("--verbose") || args.Contains("-v");
             bool nologo = args.Contains("--no-logo") || args.Contains("-n");
             FosterSettings.Verbose = verbose;
-            if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info warranty'." + Environment.NewLine + "This is free software, and you are welcome to redistribute it under certain conditions; type `info conditions' for details." + Environment.NewLine + "This software is protected with MIT License; type `info license' or 'info copyright' for details."); }
+            if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info license'." + Environment.NewLine + "This software is protected with MIT License; type `info license' or 'info copyright' for details."); }
             if (verbose) { Console.WriteLine("Foster Initialize complete with " + FosterSettings.Parsers.Length + " parser(s) and " + FosterSettings.Packers.Length + " packer(s)."); }
-            string htumanName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+            string fostermanName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
             if (args.Length <= 0 || args.Contains("--help") || args.Contains("help") || args.Contains("-h") || args.Contains("?") || args.Contains("/?"))
             {
                 Console.WriteLine("Foster Manager ver. " + Versioning.Version + " [" + Versioning.Dev + "]");
@@ -68,10 +95,8 @@ namespace Foster_Manager
                 if (verbose)
                 {
                     Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
-                    Console.WriteLine("     copyright = shows the copyright notice.");
-                    Console.WriteLine("     warranty = Shows the warranty notice.");
-                    Console.WriteLine("     conditions = Shows the conditions notice.");
                     Console.WriteLine("     license = Shows the MIT License.");
+                    Console.WriteLine("     copyright = Similar to \"license\".");
                 }
                 Console.WriteLine("clean                                                      Cleans the Foster temporary folder.");
                 Console.WriteLine("query [Path]                                               Gets information about a file.");
@@ -141,11 +166,19 @@ namespace Foster_Manager
                     Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
                     Console.WriteLine("     -o [File Path] = Similar to \"-Output\" parameter.");
                     Console.WriteLine("     -Output [File Path] = Path of the package file that will be created.");
+                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -Password [Password] = Password of file.");
                     Console.WriteLine("     -a [Algorithm] = Similar to \"-Algorithm\" parameter.");
                     Console.WriteLine("     -Algorithm [Algorithm] = The compression algorithm that will be used to compress the package file. Valid options are:");
                     for (int i = 0; i < FosterSettings.Packers.Length; i++)
                     {
                         Console.WriteLine("          " + FosterSettings.Packers[i].PackerName + "(" + i + ") ");
+                    }
+                    Console.WriteLine("     -e [Encryption] = Similar to \"-Encryption\"");
+                    Console.WriteLine("     -Encryption [Encryption] = The encryption algorithm that will be used to create files. Valid options are:");
+                    for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
                     }
                 }
                 Console.WriteLine("unpack [File Path] [OPTIONS]                                Packs a folder into a Foster compatible package file." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
@@ -154,6 +187,8 @@ namespace Foster_Manager
                     Console.WriteLine("[File Path] = Path of the file that will be unpacked.");
                     Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
                     Console.WriteLine("     [Folder Path] = Folder to unpack to.");
+                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -Password [Password] = Password of file.");
                 }
                 Console.WriteLine("delta [Folder Path] [Based Folder Path] [OPTIONS]          Creates a delta package based on a version." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
@@ -169,12 +204,21 @@ namespace Foster_Manager
                     {
                         Console.WriteLine("          " + FosterSettings.Packers[i].PackerName + "(" + i + ") ");
                     }
+                    Console.WriteLine("     -e [Encryption] = Similar to \"-Encryption\"");
+                    Console.WriteLine("     -Encryption [Encryption] = The encryption algorithm that will be used to create files. Valid options are:");
+                    for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
+                    }
                 }
                 Console.WriteLine("adelta [File Path] [Folder Path]                            Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
                 {
                     Console.WriteLine("[Folder Path] = Path of the folder to apply delta on.");
                     Console.WriteLine("[File Path] = Path of the delta package that will be applied.");
+                    Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
+                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -Password [Password] = Password of file.");
                 }
                 Console.WriteLine("update [Folder] [URI] [OPTIONS]                             Updates a folder." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
@@ -191,6 +235,8 @@ namespace Foster_Manager
                     Console.WriteLine("     --skip-size = Skips the size detection. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-hahes = Skips the file verification. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-backup-errors = Skips the errors occurred while creating backup. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
+                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -Password [Password] = Password of file.");
                     Console.WriteLine("     -y = Says \"Yes\" to every question.");
                 }
                 Console.WriteLine("install [Folder] [URI] [OPTIONS]                             Installs Foster to a folder." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
@@ -207,6 +253,8 @@ namespace Foster_Manager
                     Console.WriteLine("     --erase = Erases the work folder. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-hahes = Skips the file verification. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-backup-errors = Skips the errors occurred while creating backup. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
+                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -Password [Password] = Password of file.");
                     Console.WriteLine("     -y = Says \"Yes\" to every question.");
                 }
                 Console.WriteLine("create [Source Folder] [Output Folder] [OPTIONS]            Creates Foster packages.");
@@ -219,6 +267,8 @@ namespace Foster_Manager
                     Console.WriteLine("     -Source [Skeleton Foster file] = The name of the Skeleton Foster file, optional.");
                     Console.WriteLine("     --skip-empty-dirs = Skips the empty directories. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-hashes = Skips the hash-checking part. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
+                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -Password [Password] = Password of file.");
                     Console.WriteLine("     -a [Algorithm] = Similar to \"-Algorithm\"");
                     Console.WriteLine("     -Algorithm [Algorithm] = The compression algorithm that will be used to compress the package files. Valid options are:");
                     for (int i = 0; i < FosterSettings.Packers.Length; i++)
@@ -231,49 +281,26 @@ namespace Foster_Manager
                     {
                         Console.WriteLine("          " + FosterSettings.Parsers[i].ParserName + "(" + i + ") ");
                     }
+                    Console.WriteLine("     -e [Encryption] = Similar to \"-Encryption\"");
+                    Console.WriteLine("     -Encryption [Encryption] = The encryption algorithm that will be used to create files. Valid options are:");
+                    for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                    {
+                        Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
+                    }
                 }
                 return;
             }
             if (args.Contains("info"))
             {
+                // TODO: Change License
                 int singleArgLoc = Array.IndexOf(args, "info");
                 if (args.Length - 1 > singleArgLoc)
                 {
                     string infoArg = args[singleArgLoc + 1];
                     switch (infoArg.ToLowerEnglish())
                     {
-                        case "warranty":
-                            Console.WriteLine("");
-                            Console.WriteLine("Please see sections 15, 16 and additionally 17 in license." + (verbose ? (Environment.NewLine + "The entire license can be found by using \"info license\" argument.") : ""));
-                            Console.WriteLine("");
-                            break;
-
-                        case "conditions":
-                            Console.WriteLine("");
-                            Console.WriteLine("Please see sections, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 and 14 in license." + (verbose ? (Environment.NewLine + "The entire license can be found by using \"info license\" argument.") : ""));
-                            Console.WriteLine("");
-                            break;
-
+                        default:
                         case "copyright":
-                            Console.WriteLine("");
-                            Console.WriteLine("Command-line utility for managing Fosters." + Environment.NewLine +
-"Copyright (C) " + DateTime.Now.Year + " " + Versioning.Dev + Environment.NewLine
-+ Environment.NewLine +
-"This program is free software: you can redistribute it and/or modify" + Environment.NewLine +
-"it under the terms of the GNU General Public License as published by" + Environment.NewLine +
-"the Free Software Foundation, either version 3 of the License, or" + Environment.NewLine +
-"(at your option) any later version." + Environment.NewLine
-+ Environment.NewLine +
-"This program is distributed in the hope that it will be useful," + Environment.NewLine +
-"but WITHOUT ANY WARRANTY; without even the implied warranty of" + Environment.NewLine +
-"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the" + Environment.NewLine +
-"GNU General Public License for more details." + Environment.NewLine
-+ Environment.NewLine +
-"You should have received a copy of the GNU General Public License" + Environment.NewLine +
-"along with this program.  If not, see <https://www.gnu.org/licenses/>.");
-                            Console.WriteLine("");
-                            break;
-
                         case "license":
                             Console.WriteLine("");
                             Console.WriteLine(Properties.Resources.license);
@@ -288,6 +315,8 @@ namespace Foster_Manager
                     Console.WriteLine("Version: " + Versioning.Version);
                     Console.WriteLine("Arch: " + Versioning.Arch);
                     Console.WriteLine("Foster Version: " + FosterSettings.FosterVersion);
+                    Console.WriteLine("Hooks (User) Folder: " + HookLoc);
+                    Console.WriteLine("Hooks (System-wide) Folder: " + GlobalHookLoc);
                     string parsers = string.Empty;
                     string packers = string.Empty;
                     for (int i = 0; i < FosterSettings.Parsers.Length; i++)
@@ -354,7 +383,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while cleaning, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("pack"))
@@ -388,26 +417,20 @@ namespace Foster_Manager
                         int algorithmIndex = Array.IndexOf(args, "-a");
                         if (args.Length >= algorithmIndex + 1)
                         {
-                            string algName = args[algorithmIndex + 1];
-                            switch (algName.ToLowerEnglish())
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Packers.Length; i++)
                             {
-                                case "none":
-                                case "0":
-                                    algorithm = FosterSettings.Packers[0];
+                                if ((parseDone && algNo == i) || (FosterSettings.Packers[i].PackerName == algName))
+                                {
+                                    algorithm = FosterSettings.Packers[i];
                                     break;
-
-                                case "gzip":
-                                case "1":
-                                    algorithm = FosterSettings.Packers[1];
-                                    break;
-
-                                case "deflate":
-                                case "2":
-                                    algorithm = FosterSettings.Packers[2];
-                                    break;
-
-                                default:
-                                    throw new Exception("Unknown packer type \"" + algName.ToLowerEnglish() + "\".");
+                                }
+                            }
+                            if (algorithm == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                algorithm = FosterSettings.Packers[0];
                             }
                         }
                     }
@@ -416,40 +439,126 @@ namespace Foster_Manager
                         int algorithmIndex = Array.IndexOf(args, "-Algorithm");
                         if (args.Length >= algorithmIndex + 1)
                         {
-                            string algName = args[algorithmIndex + 1];
-                            switch (algName.ToLowerEnglish())
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Packers.Length; i++)
                             {
-                                case "none":
-                                case "0":
-                                    algorithm = FosterSettings.Packers[0];
+                                if ((parseDone && 0 == i) || (FosterSettings.Packers[i].PackerName == algName))
+                                {
+                                    algorithm = FosterSettings.Packers[i];
                                     break;
-
-                                case "gzip":
-                                case "1":
-                                    algorithm = FosterSettings.Packers[1];
-                                    break;
-
-                                case "deflate":
-                                case "2":
-                                    algorithm = FosterSettings.Packers[2];
-                                    break;
-
-                                default:
-                                    throw new Exception("Unknown packer type \"" + algName.ToLowerEnglish() + "\".");
+                                }
+                            }
+                            if (algorithm == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                algorithm = FosterSettings.Packers[0];
                             }
                         }
                     }
+                    FosterEncryptionBase encryption = null;
+                    if (args.Contains("-e", StringComparer.InvariantCultureIgnoreCase) && encryption is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-e");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                            {
+                                if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                                {
+                                    encryption = FosterSettings.Encryptions[i];
+                                    break;
+                                }
+                            }
+                            if (encryption == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                encryption = FosterSettings.Encryptions[0];
+                            }
+                        }
+                    }
+                    if (args.Contains("-Encryption", StringComparer.InvariantCultureIgnoreCase) && encryption is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Encryption");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                            {
+                                if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                                {
+                                    encryption = FosterSettings.Encryptions[i];
+                                    break;
+                                }
+                            }
+                            if (encryption == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                encryption = FosterSettings.Encryptions[0];
+                            }
+                        }
+                    }
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    string encryptArgs = string.Empty;
+                    if (args.Contains("-c", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-c");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (args.Contains("-EncryptArgs", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-EncryptArgs");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
                     if (algorithm == null) { algorithm = FosterSettings.Packers[0]; }
+                    if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
+                    if (encryption != FosterSettings.Encryptions[0] && password.Length <= 0)
+                    {
+                        string pwd = Tools.GenerateRandomText(10);
+                        Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
+                        password = System.Text.Encoding.Unicode.GetBytes(pwd);
+                    }
                     if (verbose) { Console.WriteLine("Packing \"" + packFolder + " to \"" + packFile + "\" with \"" + algorithm.PackerName + "\" algorithm..."); }
-                    Packer.CompressDirectory(packFolder, packFile, algorithm);
-                    if (verbose) { Console.WriteLine("Package packed successfully."); }
+                    HeaderContext header = new HeaderContext(packFolder, algorithm.PackerName, encryption.EncryptionName, encryption.GenerateArguments(encryptArgs)) { Password = password };
+                    using (var fStr = new System.IO.FileStream(packFile, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        Foster.Write(header, fStr);
+                    }
+                    if (verbose) { Console.WriteLine("Packaged successfully."); }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("Error while packing, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("unpack"))
@@ -463,16 +572,68 @@ namespace Foster_Manager
                     string unpackFile = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     System.IO.FileInfo ufInfo = new System.IO.FileInfo(unpackFile);
                     string unpackFolder = (args.Length <= singleArgLoc + 2) ? ufInfo.DirectoryName + System.IO.Path.DirectorySeparatorChar + System.IO.Path.GetFileNameWithoutExtension(unpackFile) + System.IO.Path.DirectorySeparatorChar : System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
                     if (verbose) { Console.WriteLine("Unpacking \"" + unpackFile + " to \"" + unpackFolder + "\"..."); }
-                    var status = Packer.DecompressToDirectory(unpackFile, unpackFolder);
-                    if (verbose) { Console.WriteLine(status ? "Package unpacked successfully." : "Unknown error on unpacking detected."); }
+                    using (var fStr = new System.IO.FileStream(unpackFile, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
+                    {
+                        var reqPassword = Foster.GetHeader(fStr).Encryption.RequiresPassword;
+
+                        if (reqPassword)
+                        {
+                            Console.WriteLine("Please enter the password:");
+                            var pwd = new System.Security.SecureString();
+                            while (true)
+                            {
+                                ConsoleKeyInfo i = Console.ReadKey(true);
+                                if (i.Key == ConsoleKey.Enter)
+                                {
+                                    break;
+                                }
+                                else if (i.Key == ConsoleKey.Backspace)
+                                {
+                                    if (pwd.Length > 0)
+                                    {
+                                        pwd.RemoveAt(pwd.Length - 1);
+                                        Console.Write("\b \b");
+                                    }
+                                }
+                                else if (i.KeyChar != '\u0000') // KeyChar == '\u0000' if the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+                                {
+                                    pwd.AppendChar(i.KeyChar);
+                                    Console.Write("*");
+                                }
+                            }
+                            password = System.Text.Encoding.Unicode.GetBytes(pwd.ToString());
+                        }
+                        fStr.Position = 0;
+                        Foster.Read(unpackFolder, fStr, password);
+                    }
+                    if (verbose) { Console.WriteLine("Package unpacked successfully."); }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("Error while unpacking, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("delta"))
@@ -508,26 +669,20 @@ namespace Foster_Manager
                         int algorithmIndex = Array.IndexOf(args, "-a");
                         if (args.Length >= algorithmIndex + 1)
                         {
-                            string algName = args[algorithmIndex + 1];
-                            switch (algName.ToLowerEnglish())
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Packers.Length; i++)
                             {
-                                case "none":
-                                case "0":
-                                    algorithm = FosterSettings.Packers[0];
+                                if ((parseDone && algNo == i) || (FosterSettings.Packers[i].PackerName == algName))
+                                {
+                                    algorithm = FosterSettings.Packers[i];
                                     break;
-
-                                case "gzip":
-                                case "1":
-                                    algorithm = FosterSettings.Packers[1];
-                                    break;
-
-                                case "deflate":
-                                case "3":
-                                    algorithm = FosterSettings.Packers[3];
-                                    break;
-
-                                default:
-                                    throw new Exception("Unknown packer type \"" + algName.ToLowerEnglish() + "\".");
+                                }
+                            }
+                            if (algorithm == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                algorithm = FosterSettings.Packers[0];
                             }
                         }
                     }
@@ -536,30 +691,117 @@ namespace Foster_Manager
                         int algorithmIndex = Array.IndexOf(args, "-Algorithm");
                         if (args.Length >= algorithmIndex + 1)
                         {
-                            string algName = args[algorithmIndex + 1];
-                            switch (algName.ToLowerEnglish())
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Packers.Length; i++)
                             {
-                                case "none":
-                                case "0":
-                                    algorithm = FosterSettings.Packers[0];
+                                if ((parseDone && algNo == i) || (FosterSettings.Packers[i].PackerName == algName))
+                                {
+                                    algorithm = FosterSettings.Packers[i];
                                     break;
-
-                                case "gzip":
-                                case "1":
-                                    algorithm = FosterSettings.Packers[1];
-                                    break;
-
-                                case "deflate":
-                                case "2":
-                                    algorithm = FosterSettings.Packers[2];
-                                    break;
-
-                                default:
-                                    throw new Exception("Unknown packer type \"" + algName.ToLowerEnglish() + "\".");
+                                }
+                            }
+                            if (algorithm == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                algorithm = FosterSettings.Packers[0];
                             }
                         }
                     }
-                    Packer.CreateDelta(System.IO.Path.GetFullPath(bFolder), System.IO.Path.GetFullPath(cFolder), System.IO.Path.GetFullPath(dFile), algorithm);
+                    FosterEncryptionBase encryption = null;
+                    if (args.Contains("-e", StringComparer.InvariantCultureIgnoreCase) && encryption is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-e");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                            {
+                                if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                                {
+                                    encryption = FosterSettings.Encryptions[i];
+                                    break;
+                                }
+                            }
+                            if (encryption == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                encryption = FosterSettings.Encryptions[0];
+                            }
+                        }
+                    }
+                    if (args.Contains("-Encryption", StringComparer.InvariantCultureIgnoreCase) && encryption is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Encryption");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                            {
+                                if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                                {
+                                    encryption = FosterSettings.Encryptions[i];
+                                    break;
+                                }
+                            }
+                            if (encryption == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                encryption = FosterSettings.Encryptions[0];
+                            }
+                        }
+                    }
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    string encryptArgs = string.Empty;
+                    if (args.Contains("-c", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-c");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (args.Contains("-EncryptArgs", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-EncryptArgs");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (algorithm == null) { algorithm = FosterSettings.Packers[0]; }
+                    if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
+                    if (encryption != FosterSettings.Encryptions[0] && password.Length <= 0)
+                    {
+                        string pwd = Tools.GenerateRandomText(10);
+                        Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
+                        password = System.Text.Encoding.Unicode.GetBytes(pwd);
+                    }
+                    HeaderContext header = new HeaderContext(System.IO.Path.GetFullPath(bFolder), System.IO.Path.GetFullPath(cFolder), algorithm, parser: null, encryption, encryption.GenerateArguments(encryptArgs)) { Password = password };
+                    using (var fStr = new System.IO.FileStream("", System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        Foster.Write(header, fStr);
+                    }
                     if (verbose) { Console.WriteLine("Creating delta successful."); }
                 }
                 catch (Exception ex)
@@ -567,7 +809,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while creating delta, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("adelta"))
@@ -580,14 +822,64 @@ namespace Foster_Manager
                     if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
                     string cFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string dFile = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
-                    Packer.ApplyDelta(System.IO.Path.GetFullPath(cFolder), new System.IO.FileStream(System.IO.Path.GetFullPath(dFile), System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite));
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    using var fStr = new System.IO.FileStream(dFile, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite);
+                    var reqPassword = Foster.GetHeader(fStr).Encryption.RequiresPassword;
+
+                    if (reqPassword)
+                    {
+                        Console.WriteLine("Please enter the password:");
+                        var pwd = new System.Security.SecureString();
+                        while (true)
+                        {
+                            ConsoleKeyInfo i = Console.ReadKey(true);
+                            if (i.Key == ConsoleKey.Enter)
+                            {
+                                break;
+                            }
+                            else if (i.Key == ConsoleKey.Backspace)
+                            {
+                                if (pwd.Length > 0)
+                                {
+                                    pwd.RemoveAt(pwd.Length - 1);
+                                    Console.Write("\b \b");
+                                }
+                            }
+                            else if (i.KeyChar != '\u0000') // KeyChar == '\u0000' if the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+                            {
+                                pwd.AppendChar(i.KeyChar);
+                                Console.Write("*");
+                            }
+                        }
+                        password = System.Text.Encoding.Unicode.GetBytes(pwd.ToString());
+                    }
+                    fStr.Position = 0;
+                    Foster.Read(cFolder, fStr, password);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("Error while applying delta, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("create"))
@@ -600,9 +892,9 @@ namespace Foster_Manager
                     if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
                     string sFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string oFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
-                    string htuFile = string.Empty;
-                    if (args.Contains("-s")) { htuFile = args[Array.IndexOf(args, "-s") + 1]; }
-                    if (args.Contains("-Source")) { htuFile = args[Array.IndexOf(args, "-Source") + 1]; }
+                    string fosterFile = string.Empty;
+                    if (args.Contains("-s")) { fosterFile = args[Array.IndexOf(args, "-s") + 1]; }
+                    if (args.Contains("-Source")) { fosterFile = args[Array.IndexOf(args, "-Source") + 1]; }
                     bool skipEmptyDirs = false;
                     bool skipHashes = false;
                     int detectSED = 0;
@@ -635,7 +927,7 @@ namespace Foster_Manager
                             }
                         }
                     }
-                    if (string.IsNullOrWhiteSpace(htuFile))
+                    if (string.IsNullOrWhiteSpace(fosterFile))
                     {
                         if (verbose) { Console.WriteLine("Searching for a Skeleton Foster file..."); }
                         string[] allFiles = System.IO.Directory.GetFiles(sFolder, "*", System.IO.SearchOption.AllDirectories);
@@ -643,12 +935,12 @@ namespace Foster_Manager
                         {
                             if (Tools.ToLowerEnglish(allFiles[i]).EndsWith(".foster"))
                             {
-                                htuFile = allFiles[i];
-                                if (verbose) { Console.WriteLine("Skeleton Foster file found at  \"" + htuFile + "\"."); }
+                                fosterFile = allFiles[i];
+                                if (verbose) { Console.WriteLine("Skeleton Foster file found at  \"" + fosterFile + "\"."); }
                                 break;
                             }
                         }
-                        if (string.IsNullOrWhiteSpace(htuFile))
+                        if (string.IsNullOrWhiteSpace(fosterFile))
                         {
                             throw new Exception("No Skeleton Foster (\".foster\") files are found in directory \"" + sFolder + "\".");
                         }
@@ -748,7 +1040,97 @@ namespace Foster_Manager
                             }
                         }
                     }
-                    Packer.CreatePackages(sFolder, oFolder, algorithm, parser, htuFile, skipEmptyDirs, skipHashes);
+                    FosterEncryptionBase encryption = null;
+                    if (args.Contains("-e", StringComparer.InvariantCultureIgnoreCase) && encryption is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-e");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                            {
+                                if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                                {
+                                    encryption = FosterSettings.Encryptions[i];
+                                    break;
+                                }
+                            }
+                            if (encryption == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                encryption = FosterSettings.Encryptions[0];
+                            }
+                        }
+                    }
+                    if (args.Contains("-Encryption", StringComparer.InvariantCultureIgnoreCase) && encryption is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Encryption");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            var parseDone = int.TryParse(algName, out int algNo);
+                            for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                            {
+                                if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                                {
+                                    encryption = FosterSettings.Encryptions[i];
+                                    break;
+                                }
+                            }
+                            if (encryption == null)
+                            {
+                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                encryption = FosterSettings.Encryptions[0];
+                            }
+                        }
+                    }
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    string encryptArgs = string.Empty;
+                    if (args.Contains("-c", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-c");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (args.Contains("-EncryptArgs", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-EncryptArgs");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (algorithm == null) { algorithm = FosterSettings.Packers[0]; }
+                    if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
+                    if (encryption != FosterSettings.Encryptions[0] && password.Length <= 0)
+                    {
+                        string pwd = Tools.GenerateRandomText(10);
+                        Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
+                        password = System.Text.Encoding.Unicode.GetBytes(pwd);
+                    }
+                    HeaderContext header = new HeaderContext() { Encryption = encryption, Packer = algorithm, Parser = parser, EncryptionArgs = encryption.GenerateArguments(encryptArgs), Password = password };
+                    Foster.CreatePackages(sFolder, oFolder, header, fosterFile, skipEmptyDirs, skipHashes);
                     if (verbose) { Console.WriteLine("Creating packages successful."); }
                 }
                 catch (Exception ex)
@@ -756,7 +1138,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while creating, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("update"))
@@ -781,7 +1163,7 @@ namespace Foster_Manager
                         arch = args[Array.IndexOf(args, "-Arch") + 1];
                     }
                     if (string.IsNullOrWhiteSpace(arch)) { arch = "noarch"; }
-                    var htu = new Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, cver, arch)
+                    var foster = new Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, cver, arch)
                     {
                         SkipFileSizeInfo = true
                     };
@@ -790,13 +1172,13 @@ namespace Foster_Manager
                     {
                         if (args.Contains("--skip-backup-errors"))
                         {
-                            htu.SkipBackupError = true;
+                            foster.SkipBackupError = true;
                             int shLoc = Array.IndexOf(args, "--skip-backup-errors");
                             if ((args.Length - 1) > shLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[shLoc + 1]);
-                                htu.SkipBackupError = v == "true" || v == "1" || v == "yes";
-                                htu.SkipBackupError = !(v == "false" || v == "0" || v == "no");
+                                foster.SkipBackupError = v == "true" || v == "1" || v == "yes";
+                                foster.SkipBackupError = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("--version"))
@@ -805,7 +1187,7 @@ namespace Foster_Manager
                             if ((args.Length - 1) > shLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[shLoc + 1]);
-                                htu.CurrentVer = int.Parse(v);
+                                foster.CurrentVer = int.Parse(v);
                             }
                             else
                             {
@@ -814,35 +1196,35 @@ namespace Foster_Manager
                         }
                         if (args.Contains("--skip-backup"))
                         {
-                            htu.SkipBackup = true;
+                            foster.SkipBackup = true;
                             int sedLoc = Array.IndexOf(args, "--skip--backup");
                             if ((args.Length - 1) > sedLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[sedLoc + 1]);
-                                htu.SkipBackup = v == "true" || v == "1" || v == "yes";
-                                htu.SkipBackup = !(v == "false" || v == "0" || v == "no");
+                                foster.SkipBackup = v == "true" || v == "1" || v == "yes";
+                                foster.SkipBackup = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("--erase"))
                         {
-                            htu.SkipBackup = true;
+                            foster.SkipBackup = true;
                             int sedLoc = Array.IndexOf(args, "--erase");
                             if ((args.Length - 1) > sedLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[sedLoc + 1]);
-                                htu.EraseFolder = v == "true" || v == "1" || v == "yes";
-                                htu.EraseFolder = !(v == "false" || v == "0" || v == "no");
+                                foster.EraseFolder = v == "true" || v == "1" || v == "yes";
+                                foster.EraseFolder = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("--skip-hashes"))
                         {
-                            htu.SkipHashes = true;
+                            foster.SkipHashes = true;
                             int sedLoc = Array.IndexOf(args, "--skip--hashes");
                             if ((args.Length - 1) > sedLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[sedLoc + 1]);
-                                htu.SkipHashes = v == "true" || v == "1" || v == "yes";
-                                htu.SkipHashes = !(v == "false" || v == "0" || v == "no");
+                                foster.SkipHashes = v == "true" || v == "1" || v == "yes";
+                                foster.SkipHashes = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("-y"))
@@ -854,7 +1236,7 @@ namespace Foster_Manager
                             int shLoc = Array.IndexOf(args, "--retry");
                             if ((args.Length - 1) > shLoc)
                             {
-                                htu.RetryCount = int.Parse(Tools.ToLowerEnglish(args[shLoc + 1]));
+                                foster.RetryCount = int.Parse(Tools.ToLowerEnglish(args[shLoc + 1]));
                             }
                             else
                             {
@@ -862,7 +1244,27 @@ namespace Foster_Manager
                             }
                         }
                     }
-                    htu.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    foster.Password = password;
+                    foster.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
                     {
                         if (verbose)
                         {
@@ -894,7 +1296,7 @@ namespace Foster_Manager
                             }
                         }
                     });
-                    Foster_Download[] downloadList = htu.GetDownloads();
+                    Foster_Download[] downloadList = foster.GetDownloads();
                     long totalDownload = 0;
                     long totalDisk = 0;
                     string downloadSize = "Package(s) to download: " + Environment.NewLine;
@@ -915,14 +1317,14 @@ namespace Foster_Manager
                             return;
                         }
                     }
-                    htu.Update(true);
-                    if (htu.LatestException != null)
+                    foster.Update(true);
+                    if (foster.LatestException != null)
                     {
-                        throw htu.LatestException;
+                        throw foster.LatestException;
                     }
                     else
                     {
-                        Tools.WriteFile(verFile, "" + htu.CurrentVersion.ID, System.Text.Encoding.Unicode);
+                        Tools.WriteFile(verFile, "" + foster.CurrentVersion.ID, System.Text.Encoding.Unicode);
                         Console.WriteLine("Update finished with no errors.");
                     }
                 }
@@ -931,7 +1333,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while updating, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("install"))
@@ -955,7 +1357,7 @@ namespace Foster_Manager
                         arch = args[Array.IndexOf(args, "-Arch") + 1];
                     }
                     if (string.IsNullOrWhiteSpace(arch)) { arch = "noarch"; }
-                    var htu = new Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, 0, arch)
+                    var foster = new Foster(new System.IO.FileInfo(curFolder).Name, uri, curFolder, 0, arch)
                     {
                         SkipFileSizeInfo = true
                     };
@@ -964,13 +1366,13 @@ namespace Foster_Manager
                     {
                         if (args.Contains("--skip-backup-errors"))
                         {
-                            htu.SkipBackupError = true;
+                            foster.SkipBackupError = true;
                             int shLoc = Array.IndexOf(args, "--skip-backup-errors");
                             if ((args.Length - 1) > shLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[shLoc + 1]);
-                                htu.SkipBackupError = v == "true" || v == "1" || v == "yes";
-                                htu.SkipBackupError = !(v == "false" || v == "0" || v == "no");
+                                foster.SkipBackupError = v == "true" || v == "1" || v == "yes";
+                                foster.SkipBackupError = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("--version"))
@@ -979,7 +1381,7 @@ namespace Foster_Manager
                             if ((args.Length - 1) > shLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[shLoc + 1]);
-                                htu.CurrentVer = int.Parse(v);
+                                foster.CurrentVer = int.Parse(v);
                             }
                             else
                             {
@@ -988,35 +1390,35 @@ namespace Foster_Manager
                         }
                         if (args.Contains("--skip-hashes"))
                         {
-                            htu.SkipHashes = true;
+                            foster.SkipHashes = true;
                             int sedLoc = Array.IndexOf(args, "--skip--hashes");
                             if ((args.Length - 1) > sedLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[sedLoc + 1]);
-                                htu.SkipHashes = v == "true" || v == "1" || v == "yes";
-                                htu.SkipHashes = !(v == "false" || v == "0" || v == "no");
+                                foster.SkipHashes = v == "true" || v == "1" || v == "yes";
+                                foster.SkipHashes = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("--erase"))
                         {
-                            htu.SkipBackup = true;
+                            foster.SkipBackup = true;
                             int sedLoc = Array.IndexOf(args, "--erase");
                             if ((args.Length - 1) > sedLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[sedLoc + 1]);
-                                htu.EraseFolder = v == "true" || v == "1" || v == "yes";
-                                htu.EraseFolder = !(v == "false" || v == "0" || v == "no");
+                                foster.EraseFolder = v == "true" || v == "1" || v == "yes";
+                                foster.EraseFolder = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("--skip-backup"))
                         {
-                            htu.SkipBackup = true;
+                            foster.SkipBackup = true;
                             int sedLoc = Array.IndexOf(args, "--skip--backup");
                             if ((args.Length - 1) > sedLoc)
                             {
                                 string v = Tools.ToLowerEnglish(args[sedLoc + 1]);
-                                htu.SkipBackup = v == "true" || v == "1" || v == "yes";
-                                htu.SkipBackup = !(v == "false" || v == "0" || v == "no");
+                                foster.SkipBackup = v == "true" || v == "1" || v == "yes";
+                                foster.SkipBackup = !(v == "false" || v == "0" || v == "no");
                             }
                         }
                         if (args.Contains("-y"))
@@ -1028,7 +1430,7 @@ namespace Foster_Manager
                             int shLoc = Array.IndexOf(args, "--retry");
                             if ((args.Length - 1) > shLoc)
                             {
-                                htu.RetryCount = int.Parse(Tools.ToLowerEnglish(args[shLoc + 1]));
+                                foster.RetryCount = int.Parse(Tools.ToLowerEnglish(args[shLoc + 1]));
                             }
                             else
                             {
@@ -1036,7 +1438,27 @@ namespace Foster_Manager
                             }
                         }
                     }
-                    htu.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    foster.Password = password;
+                    foster.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
                     {
                         if (verbose)
                         {
@@ -1068,8 +1490,8 @@ namespace Foster_Manager
                             }
                         }
                     });
-                    htu.LoadFromUrl();
-                    Foster_Download[] downloadList = htu.GetDownloads(null, htu.LatestVersion);
+                    foster.LoadFromUrl();
+                    Foster_Download[] downloadList = foster.GetDownloads(null, foster.LatestVersion);
                     long totalDownload = 0;
                     long totalDisk = 0;
                     string downloadSize = "Package(s) to download: " + Environment.NewLine;
@@ -1090,14 +1512,14 @@ namespace Foster_Manager
                             return;
                         }
                     }
-                    htu.Update(true);
-                    if (htu.LatestException != null)
+                    foster.Update(true);
+                    if (foster.LatestException != null)
                     {
-                        throw htu.LatestException;
+                        throw foster.LatestException;
                     }
                     else
                     {
-                        Tools.WriteFile(verFile, "" + htu.CurrentVersion.ID, System.Text.Encoding.Unicode);
+                        Tools.WriteFile(verFile, "" + foster.CurrentVersion.ID, System.Text.Encoding.Unicode);
                         Console.WriteLine("Update finished with no errors.");
                     }
                 }
@@ -1106,7 +1528,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while installing, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("query"))
@@ -1123,6 +1545,26 @@ namespace Foster_Manager
                         SkipFileSizeInfo = true,
                         URL = uri,
                     };
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string algName = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    foster.Password = password;
                     foster.OnLogEntry += new Foster.OnLogEntryDelegate((sender, e) =>
                     {
                         if (verbose)
@@ -1222,7 +1664,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while getting information, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(htumanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             Console.WriteLine(" [E] Unknown command, please use help command to see all supported commands.");
