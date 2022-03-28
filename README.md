@@ -1,12 +1,12 @@
 # Foster Manager (Foster Manager)
 
-A command-line tool for managing [`Foster`]().
+A command-line tool for managing [`Foster`](https://github.com/haltroy/Foster).
 
 ## Versions
 
-<!-- **Latest Stable** Version: **[`1.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0-preview1)** -->
+**Latest Stable** Version: **[`1.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0)**
 
-**Latest Development** Version: **[`1.0.0.0-preview1`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0-preview1)**
+**Latest Development** Version: **[`2.0.0.0-preview1`](https://github.com/Haltroy/Foster-Manager/releases/tag/2.0.0.0-preview1)**
 
 ## Features
 
@@ -66,5 +66,6 @@ Here's a list of all options:
 | Branch/Version                                                               | Foster | Minimum .NET | Status | Release Time |
 |----------------------------------------------------------------------|---------------|---------------------|----------|------------|
 | [`master`](https://github.com/haltroy/htalt)              | Main branch | .NET Core 3.1 | Main | - |
-| `1.0.0.1` | 1.0 | .NET Core 3.1 | *Development*| 2022 |
+| `2.0.0.1` | 2.0 | .NET Core 3.1 | *~~Planned~~*| 2022 |
+| `2.0.0.0` | 2.0 | .NET Core 3.1 | *Development*| 31 March 2022 |
 | [`1.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0) | 1.0 | .NET Core 3.1 | **Latest Release** | 31 December 2021 |

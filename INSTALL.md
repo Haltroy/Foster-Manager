@@ -27,7 +27,7 @@ The output looks similar to this: `Linux HALTROY-WIN10 5.10.16.3-microsoft-stand
 
 If your system is either `amd64` or `x86_64`, use `x64` package.
 
-Some file managers such as KDE's Dolphin includes file verification. To do this, open up properties and navigate to `Checksums` tab. Then, copy any of the file checksum you want and wait until it verifies.
+Some file managers such as KDE's Dolphin includes file verification. To do this, open up properties and navigate to `Checksums` tab. Then, copy any of the file checksum you want and wait until it verifies or press the button near the field.
 
 Download the tarball which is designed to your architecture in [Releases page](https://github.com/haltroy/foster/releases/). Names of file looks like this: `fosterman-[Processor type].tar...`
 
