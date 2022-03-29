@@ -44,6 +44,10 @@ namespace Foster_Manager
                 {
                     System.IO.Directory.CreateDirectory(HookLoc);
                 }
+                if (!System.IO.Directory.Exists(GlobalHookLoc))
+                {
+                    System.IO.Directory.CreateDirectory(GlobalHookLoc);
+                }
                 var hooks = System.IO.Directory.GetFiles(HookLoc, "*.dll", System.IO.SearchOption.TopDirectoryOnly).Concat(System.IO.Directory.GetFiles(GlobalHookLoc, "*.dll", System.IO.SearchOption.TopDirectoryOnly)).ToArray();
                 for (int i = 0; i < hooks.Length; i++)
                 {
@@ -66,7 +70,6 @@ namespace Foster_Manager
             new FosterPackerGZip().Register();
             new FosterPackerDeflate().Register();
             new FosterXmlParser().Register();
-            new FosterJsonParser().Register();
             new FosterEncryptionAes().Register();
         }
 
@@ -292,7 +295,6 @@ namespace Foster_Manager
             }
             if (args.Contains("info"))
             {
-                // TODO: Change License
                 int singleArgLoc = Array.IndexOf(args, "info");
                 if (args.Length - 1 > singleArgLoc)
                 {

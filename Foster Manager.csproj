@@ -18,7 +18,6 @@
     <ProjectReference Include="..\Modules\FosterCryptAes\FosterCryptAes.csproj" />
     <ProjectReference Include="..\Modules\FosterPackerDeflate\FosterPackerDeflate.csproj" />
     <ProjectReference Include="..\Modules\FosterPackerGZip\FosterPackerGZip.csproj" />
-    <ProjectReference Include="..\Modules\FosterParserJSON\FosterParserJSON.csproj" />
     <ProjectReference Include="..\Modules\FosterParserXml\FosterParserXml.csproj" />
   </ItemGroup>
 
