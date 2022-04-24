@@ -34,19 +34,43 @@ namespace Foster_Manager
         private static string HookLoc => System.IO.Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fosterman" + System.IO.Path.DirectorySeparatorChar + "hooks");
         private static string GlobalHookLoc => System.IO.Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "fosterman" + System.IO.Path.DirectorySeparatorChar + "hooks");
 
-        private static void HookParsersAndPackers(bool skipFolder = false)
+        private static void HookParsersAndPackers(bool skipFolder = false, bool verbose = false)
         {
-            // This code below auto-registers any parser/encryptor/packer in HookLoc and GlobalHookLoc folder. They only have to be a DLL file and must include a class with Register
+            // This code below auto-registers any parser/encryption/packer in HookLoc and GlobalHookLoc folder. They only have to be a DLL file and must include a class with Register
             // void that registers the said extension to FosterSettings.
             if (!skipFolder)
             {
-                if (!System.IO.Directory.Exists(HookLoc))
+                try
                 {
-                    System.IO.Directory.CreateDirectory(HookLoc);
+                    if (!System.IO.Directory.Exists(HookLoc))
+                    {
+                        System.IO.Directory.CreateDirectory(HookLoc);
+                    }
                 }
-                if (!System.IO.Directory.Exists(GlobalHookLoc))
+                catch (Exception ex)
                 {
-                    System.IO.Directory.CreateDirectory(GlobalHookLoc);
+                    Console.WriteLine("Foster Manager cannot create the hooks folder for this user. Please create this path to fix this error:");
+                    Console.WriteLine(HookLoc);
+                    if (verbose)
+                    {
+                        Console.WriteLine("Detailed error information: " + ex.ToString());
+                    }
+                }
+                try
+                {
+                    if (!System.IO.Directory.Exists(GlobalHookLoc))
+                    {
+                        System.IO.Directory.CreateDirectory(GlobalHookLoc);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Foster Manager cannot create the system-wide hooks folder. Please create this path to fix this error:");
+                    Console.WriteLine(GlobalHookLoc);
+                    if (verbose)
+                    {
+                        Console.WriteLine("Detailed error information: " + ex.ToString());
+                    }
                 }
                 var hooks = System.IO.Directory.GetFiles(HookLoc, "*.dll", System.IO.SearchOption.TopDirectoryOnly).Concat(System.IO.Directory.GetFiles(GlobalHookLoc, "*.dll", System.IO.SearchOption.TopDirectoryOnly)).ToArray();
                 for (int i = 0; i < hooks.Length; i++)
@@ -65,7 +89,7 @@ namespace Foster_Manager
                     }
                 }
             }
-            // NOTE: Add your own parsers, encryptors and packers below. You can use the examples below to add.
+            // NOTE: Add your own parsers, encryptions and packers below. You can use the examples below to add.
             // It's not that hard dude you probably better than me in C++ this should be a piece of cake to you.
             new FosterPackerGZip().Register();
             new FosterPackerDeflate().Register();
@@ -75,11 +99,15 @@ namespace Foster_Manager
 
         private static void Main(string[] args)
         {
-            bool skipFolder = args.Contains("--verbose") || args.Contains("-");
-            HookParsersAndPackers();
-            bool verbose = args.Contains("--verbose") || args.Contains("-v");
+            bool skipFolder = args.Contains("--skip-addons") || args.Contains("-a");
+            FosterSettings.VerbosityLevel = args.Contains("-v") ? FosterSettings.Verbosity.OnlyErrors : FosterSettings.Verbosity.None;
+            FosterSettings.VerbosityLevel = args.Contains("-vv") ? FosterSettings.Verbosity.Progress : FosterSettings.VerbosityLevel;
+            FosterSettings.VerbosityLevel = args.Contains("-vvv") ? FosterSettings.Verbosity.Detailed : FosterSettings.VerbosityLevel;
+            FosterSettings.VerbosityLevel = args.Contains("-vvvv") ? FosterSettings.Verbosity.Everything : FosterSettings.VerbosityLevel;
+            bool verbose = FosterSettings.VerbosityLevel != FosterSettings.Verbosity.None;
+            HookParsersAndPackers(skipFolder, verbose);
             bool nologo = args.Contains("--no-logo") || args.Contains("-n");
-            FosterSettings.Verbose = verbose;
+
             if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info license'." + Environment.NewLine + "This software is protected with MIT License; type `info license' or 'info copyright' for details."); }
             if (verbose) { Console.WriteLine("Foster Initialize complete with " + FosterSettings.Parsers.Length + " parser(s) and " + FosterSettings.Packers.Length + " packer(s)."); }
             string fostermanName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
@@ -92,7 +120,16 @@ namespace Foster_Manager
                 Console.WriteLine("      fosterman [--verbose|-v] [--no-logo|-n] [-help|-h|help|*|/?|info|clean|query|pack|unpack|delta|update|create|convert|change-encrypt|change-packer|create-info] [OPTIONS]");
                 Console.WriteLine("OPTIONS:");
                 Console.WriteLine("help --help -h /? ?                                         Shows this information.");
-                Console.WriteLine("--verbose -v                                                Shows more information while doing something.");
+                Console.WriteLine("--skip-addons -a                                            Skips add-ons.");
+                Console.WriteLine("-v                                                          Shows more information while doing something. To add more verbosity, add more 'v'. (Max. 4)");
+                if (verbose)
+                {
+                    Console.WriteLine("v: Only verbose errors from LibFoster and more information from Foster Manager.");
+                    Console.WriteLine("vv: Only verbose errors and progress from LibFoster and more information from Foster Manager.");
+                    Console.WriteLine("vvv: Detailed output from LibFoster and more information from Foster Manager.");
+                    Console.WriteLine("vvvv: Everything from LibFoster and more information from Foster Manager.");
+                }
+
                 Console.WriteLine("--no-logo -n                                                Hides the copyright information on run.");
                 Console.WriteLine("info [OPTIONS]                                              Shows information about this program.");
                 if (verbose)
@@ -236,7 +273,7 @@ namespace Foster_Manager
                     Console.WriteLine("     --skip-backup = Skips the backup creation. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --erase = Erases the work folder. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-size = Skips the size detection. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
-                    Console.WriteLine("     --skip-hahes = Skips the file verification. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
+                    Console.WriteLine("     --skip-hashes = Skips the file verification. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-backup-errors = Skips the errors occurred while creating backup. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
                     Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
                     Console.WriteLine("     -Password [Password] = Password of file.");
@@ -254,7 +291,7 @@ namespace Foster_Manager
                     Console.WriteLine("     --skip-backup = Skips the backup creation. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-size = Skips the size detection. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --erase = Erases the work folder. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
-                    Console.WriteLine("     --skip-hahes = Skips the file verification. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
+                    Console.WriteLine("     --skip-hashes = Skips the file verification. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-backup-errors = Skips the errors occurred while creating backup. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
                     Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
                     Console.WriteLine("     -Password [Password] = Password of file.");
@@ -337,22 +374,380 @@ namespace Foster_Manager
             }
             if (args.Contains("convert"))
             {
-                // TODO
+                int singleArgLoc = Array.IndexOf(args, "convert");
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+                try
+                {
+                    if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
+                    string inputFile = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
+                    string outputFile = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
+                    string algName = args[singleArgLoc + 3].ToLowerEnglish();
+                    var parseDone = int.TryParse(algName, out int algNo);
+                    FosterParserBase parser = null;
+                    for (int i = 0; i < FosterSettings.Parsers.Length; i++)
+                    {
+                        if ((parseDone && algNo == i) || (FosterSettings.Parsers[i].ParserName == algName))
+                        {
+                            parser = FosterSettings.Parsers[i];
+                            break;
+                        }
+                    }
+                    if (parser == null)
+                    {
+                        throw new Exception("Couldn't find a parser with name \"" + algName + "\".");
+                    }
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string pass = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    if (args.Contains("-Password", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-Password");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            string pass = args[algorithmIndex + 1].ToLowerEnglish();
+                            password = System.Text.Encoding.Unicode.GetBytes(algName);
+                        }
+                    }
+                    HeaderContext header = new HeaderContext(new Foster(), null, parser, null, null);
+                    using (var fStr = new System.IO.FileStream(inputFile, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        var _header = Foster.GetHeader(fStr);
+                        header.Encryption = _header.Encryption;
+                        header.Packer = _header.Packer;
+                        var reqPassword = _header.Encryption.RequiresPassword;
+
+                        if (reqPassword)
+                        {
+                            Console.WriteLine("Please enter the password:");
+                            var pwd = new System.Security.SecureString();
+                            while (true)
+                            {
+                                ConsoleKeyInfo i = Console.ReadKey(true);
+                                if (i.Key == ConsoleKey.Enter)
+                                {
+                                    break;
+                                }
+                                else if (i.Key == ConsoleKey.Backspace)
+                                {
+                                    if (pwd.Length > 0)
+                                    {
+                                        pwd.RemoveAt(pwd.Length - 1);
+                                        Console.Write("\b \b");
+                                    }
+                                }
+                                else if (i.KeyChar != '\u0000') // KeyChar == '\u0000' if the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+                                {
+                                    pwd.AppendChar(i.KeyChar);
+                                    Console.Write("*");
+                                }
+                            }
+                            password = System.Text.Encoding.Unicode.GetBytes(pwd.ToString());
+                        }
+                        fStr.Position = 0;
+                        Foster.Read(header.Foster, fStr, password);
+                    }
+                    using (var fStr = new System.IO.FileStream(outputFile, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        Foster.Write(header, fStr);
+                    }
+                    if (verbose) { Console.WriteLine("Converted successfully."); }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error while converting, exception caught:" + ex.ToString());
+                }
+                sw.Stop();
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("create-info"))
             {
-                // TODO
+                int singleArgLoc = Array.IndexOf(args, "create-info");
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+                try
+                {
+                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    string filePath = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
+                    string algName = args[singleArgLoc + 2].ToLowerEnglish();
+                    var parseDone = int.TryParse(algName, out int algNo);
+                    FosterParserBase parser = null;
+                    for (int i = 0; i < FosterSettings.Parsers.Length; i++)
+                    {
+                        if ((parseDone && algNo == i) || (FosterSettings.Parsers[i].ParserName == algName))
+                        {
+                            parser = FosterSettings.Parsers[i];
+                            break;
+                        }
+                    }
+                    if (parser == null)
+                    {
+                        throw new Exception("Couldn't find a parser with name \"" + algName + "\".");
+                    }
+                    HeaderContext header = new HeaderContext(new Foster(), null, parser, null, null);
+                    using (var fStr = new System.IO.FileStream(filePath, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        Foster.Write(header, fStr);
+                    }
+                    if (verbose) { Console.WriteLine("Created successfully."); }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error while packing, exception caught:" + ex.ToString());
+                }
+                sw.Stop();
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("change-encrypt"))
             {
-                // TODO
+                int singleArgLoc = Array.IndexOf(args, "change-encrypt");
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+                try
+                {
+                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    string packFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
+                    FosterEncryptionBase encryption = null;
+                    string algName = args[singleArgLoc + 2].ToLowerEnglish();
+                    var parseDone = int.TryParse(algName, out int algNo);
+                    for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                    {
+                        if ((parseDone && algNo == i) || (FosterSettings.Encryptions[i].EncryptionName == algName))
+                        {
+                            encryption = FosterSettings.Encryptions[i];
+                            break;
+                        }
+                    }
+                    System.IO.DirectoryInfo pfInfo = new System.IO.DirectoryInfo(packFolder);
+                    string packFile = null;
+                    if (args.Contains("-o"))
+                    {
+                        int outputIndex = Array.IndexOf(args, "-o");
+                        packFile = System.IO.Path.GetFullPath(args[outputIndex + 1]);
+                    }
+                    if (args.Contains("-Output") && string.IsNullOrWhiteSpace(packFile))
+                    {
+                        int outputIndex = Array.IndexOf(args, "-Output");
+                        packFile = System.IO.Path.GetFullPath(args[outputIndex + 1]);
+                    }
+                    if (string.IsNullOrWhiteSpace(packFile))
+                    {
+                        packFile = System.IO.Path.Combine(pfInfo.Parent.FullName, pfInfo.Name + ".fp");
+                    }
+
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            password = System.Text.Encoding.Unicode.GetBytes(args[algorithmIndex + 1]);
+                        }
+                    }
+                    byte[] qassword = null;
+                    if (args.Contains("-q", StringComparer.InvariantCultureIgnoreCase) && qassword is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-q");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            qassword = System.Text.Encoding.Unicode.GetBytes(args[algorithmIndex + 1]);
+                        }
+                    }
+                    string encryptArgs = string.Empty;
+                    if (args.Contains("-c", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-c");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (args.Contains("-EncryptArgs", StringComparer.InvariantCultureIgnoreCase) && string.IsNullOrWhiteSpace(encryptArgs))
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-EncryptArgs");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            encryptArgs = args[algorithmIndex + 1];
+                        }
+                    }
+                    if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
+                    if (encryption.RequiresPassword && qassword.Length <= 0)
+                    {
+                        string pwd = Tools.GenerateRandomText(10);
+                        Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
+                        qassword = System.Text.Encoding.Unicode.GetBytes(pwd);
+                    }
+                    if (verbose) { Console.WriteLine("Changing encryption method of file \"" + packFolder + " to \"" + encryption.EncryptionName + "\"..."); }
+                    using (var fStr = new System.IO.FileStream(packFile, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        var header = Foster.GetHeader(fStr);
+
+                        if (header.Encryption.RequiresPassword)
+                        {
+                            Console.WriteLine("Please enter the password:");
+                            var pwd = new System.Security.SecureString();
+                            while (true)
+                            {
+                                ConsoleKeyInfo i = Console.ReadKey(true);
+                                if (i.Key == ConsoleKey.Enter)
+                                {
+                                    break;
+                                }
+                                else if (i.Key == ConsoleKey.Backspace)
+                                {
+                                    if (pwd.Length > 0)
+                                    {
+                                        pwd.RemoveAt(pwd.Length - 1);
+                                        Console.Write("\b \b");
+                                    }
+                                }
+                                else if (i.KeyChar != '\u0000') // KeyChar == '\u0000' if the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+                                {
+                                    pwd.AppendChar(i.KeyChar);
+                                    Console.Write("*");
+                                }
+                            }
+                            password = System.Text.Encoding.Unicode.GetBytes(pwd.ToString());
+                        }
+                        fStr.Position = 0;
+                        string tempFolder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "fosterman" + System.IO.Path.DirectorySeparatorChar + "temp_" + Tools.GenerateRandomText());
+                        if (System.IO.Directory.Exists(tempFolder))
+                        {
+                            System.IO.Directory.Delete(tempFolder, true);
+                        }
+                        System.IO.Directory.CreateDirectory(tempFolder);
+                        Foster.Read(tempFolder, fStr, password);
+                        var newheader = new HeaderContext(tempFolder, packer: header.Packer, encryption: encryption, encryption.GenerateArguments(encryptArgs)) { Password = qassword };
+                        Foster.Write(newheader, fStr);
+                    }
+                    if (verbose) { Console.WriteLine("Changed encryption successfully."); }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error while changing encryption, exception caught:" + ex.ToString());
+                }
+                sw.Stop();
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("change-packer"))
             {
-                // TODO
+                int singleArgLoc = Array.IndexOf(args, "change-packer");
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+                try
+                {
+                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    string packFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
+                    FosterPackerBase packer = null;
+                    string algName = args[singleArgLoc + 2].ToLowerEnglish();
+                    var parseDone = int.TryParse(algName, out int algNo);
+                    for (int i = 0; i < FosterSettings.Encryptions.Length; i++)
+                    {
+                        if ((parseDone && algNo == i) || (FosterSettings.Packers[i].PackerName == algName))
+                        {
+                            packer = FosterSettings.Packers[i];
+                            break;
+                        }
+                    }
+                    System.IO.DirectoryInfo pfInfo = new System.IO.DirectoryInfo(packFolder);
+                    string packFile = null;
+                    if (args.Contains("-o"))
+                    {
+                        int outputIndex = Array.IndexOf(args, "-o");
+                        packFile = System.IO.Path.GetFullPath(args[outputIndex + 1]);
+                    }
+                    if (args.Contains("-Output") && string.IsNullOrWhiteSpace(packFile))
+                    {
+                        int outputIndex = Array.IndexOf(args, "-Output");
+                        packFile = System.IO.Path.GetFullPath(args[outputIndex + 1]);
+                    }
+                    if (string.IsNullOrWhiteSpace(packFile))
+                    {
+                        packFile = System.IO.Path.Combine(pfInfo.Parent.FullName, pfInfo.Name + ".fp");
+                    }
+
+                    byte[] password = null;
+                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-p");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            password = System.Text.Encoding.Unicode.GetBytes(args[algorithmIndex + 1]);
+                        }
+                    }
+                    byte[] qassword = null;
+                    if (args.Contains("-q", StringComparer.InvariantCultureIgnoreCase) && qassword is null)
+                    {
+                        int algorithmIndex = Array.IndexOf(args, "-q");
+                        if (args.Length >= algorithmIndex + 1)
+                        {
+                            qassword = System.Text.Encoding.Unicode.GetBytes(args[algorithmIndex + 1]);
+                        }
+                    }
+                    if (packer == null) { packer = FosterSettings.Packers[0]; }
+                    if (verbose) { Console.WriteLine("Changing compression method of file \"" + packFolder + " to \"" + packer.PackerName + "\"..."); }
+                    using (var fStr = new System.IO.FileStream(packFile, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        var header = Foster.GetHeader(fStr);
+
+                        if (header.Encryption.RequiresPassword)
+                        {
+                            Console.WriteLine("Please enter the password:");
+                            var pwd = new System.Security.SecureString();
+                            while (true)
+                            {
+                                ConsoleKeyInfo i = Console.ReadKey(true);
+                                if (i.Key == ConsoleKey.Enter)
+                                {
+                                    break;
+                                }
+                                else if (i.Key == ConsoleKey.Backspace)
+                                {
+                                    if (pwd.Length > 0)
+                                    {
+                                        pwd.RemoveAt(pwd.Length - 1);
+                                        Console.Write("\b \b");
+                                    }
+                                }
+                                else if (i.KeyChar != '\u0000') // KeyChar == '\u0000' if the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+                                {
+                                    pwd.AppendChar(i.KeyChar);
+                                    Console.Write("*");
+                                }
+                            }
+                            password = System.Text.Encoding.Unicode.GetBytes(pwd.ToString());
+                            Console.WriteLine("Encryption enabled but password not filled, using the same password.");
+                            qassword = password;
+                        }
+                        fStr.Position = 0;
+                        string tempFolder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "fosterman" + System.IO.Path.DirectorySeparatorChar + "temp_" + Tools.GenerateRandomText());
+                        if (System.IO.Directory.Exists(tempFolder))
+                        {
+                            System.IO.Directory.Delete(tempFolder, true);
+                        }
+                        System.IO.Directory.CreateDirectory(tempFolder);
+                        Foster.Read(tempFolder, fStr, password);
+                        var newheader = new HeaderContext(tempFolder, packer: packer, encryption: header.Encryption, header.EncryptionArgs) { Password = qassword };
+                        Foster.Write(newheader, fStr);
+                    }
+                    if (verbose) { Console.WriteLine("Changed encryption successfully."); }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error while changing encryption, exception caught:" + ex.ToString());
+                }
+                sw.Stop();
+                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("clean"))
@@ -411,7 +806,7 @@ namespace Foster_Manager
                     }
                     if (string.IsNullOrWhiteSpace(packFile))
                     {
-                        packFile = System.IO.Path.Combine(pfInfo.Parent.FullName, System.IO.Path.DirectorySeparatorChar + pfInfo.Name + ".hup");
+                        packFile = System.IO.Path.Combine(pfInfo.Parent.FullName, pfInfo.Name + ".fp");
                     }
                     FosterPackerBase algorithm = null;
                     if (args.Contains("-a", StringComparer.InvariantCultureIgnoreCase))
@@ -541,7 +936,7 @@ namespace Foster_Manager
                     }
                     if (algorithm == null) { algorithm = FosterSettings.Packers[0]; }
                     if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
-                    if (encryption != FosterSettings.Encryptions[0] && password.Length <= 0)
+                    if (encryption.RequiresPassword && password.Length <= 0)
                     {
                         string pwd = Tools.GenerateRandomText(10);
                         Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
@@ -662,7 +1057,7 @@ namespace Foster_Manager
                     }
                     if (string.IsNullOrWhiteSpace(dFile))
                     {
-                        dFile = System.IO.Path.Combine(cfInfo.Parent.FullName, System.IO.Path.DirectorySeparatorChar + cfInfo.Name + ".dhup");
+                        dFile = System.IO.Path.Combine(cfInfo.Parent.FullName, System.IO.Path.DirectorySeparatorChar + cfInfo.Name + ".dfp");
                     }
                     if (verbose) { Console.WriteLine("Creating delta..."); }
                     FosterPackerBase algorithm = FosterSettings.Packers[0];
@@ -793,7 +1188,7 @@ namespace Foster_Manager
                     }
                     if (algorithm == null) { algorithm = FosterSettings.Packers[0]; }
                     if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
-                    if (encryption != FosterSettings.Encryptions[0] && password.Length <= 0)
+                    if (encryption.RequiresPassword && password.Length <= 0)
                     {
                         string pwd = Tools.GenerateRandomText(10);
                         Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
@@ -1125,7 +1520,7 @@ namespace Foster_Manager
                     }
                     if (algorithm == null) { algorithm = FosterSettings.Packers[0]; }
                     if (encryption == null) { encryption = FosterSettings.Encryptions[0]; }
-                    if (encryption != FosterSettings.Encryptions[0] && password.Length <= 0)
+                    if (encryption.RequiresPassword && password.Length <= 0)
                     {
                         string pwd = Tools.GenerateRandomText(10);
                         Console.WriteLine("Encryption enabled but password not filled, using \"" + pwd + "\" as password.");
@@ -1315,7 +1710,7 @@ namespace Foster_Manager
                     {
                         if (Tools.ToLowerEnglish(Console.ReadLine()) != "y")
                         {
-                            Console.WriteLine("Cancelled.");
+                            Console.WriteLine("Canceled.");
                             return;
                         }
                     }
@@ -1510,7 +1905,7 @@ namespace Foster_Manager
                     {
                         if (Tools.ToLowerEnglish(Console.ReadLine()) != "y")
                         {
-                            Console.WriteLine("Cancelled.");
+                            Console.WriteLine("Canceled.");
                             return;
                         }
                     }
@@ -1633,7 +2028,7 @@ namespace Foster_Manager
                                 Console.WriteLine("## Dependency Name:" + dep.Dependency.Name);
                                 Console.WriteLine("## Dependency Version:" + dep.RequiredVerID);
                             }
-                            Console.WriteLine("# Version Arcihectures: [" + version.Archs + "]");
+                            Console.WriteLine("# Version Architectures: [" + version.Archs + "]");
                             for (int ı = 0; ı < version.Archs.Count; ı++)
                             {
                                 var arch = version.Archs[ı];
