@@ -36,6 +36,12 @@ namespace Foster_Manager
 
         private static void HookParsersAndPackers(bool skipFolder = false, bool verbose = false)
         {
+            // NOTE: Add your own parsers, encryptions and packers below. You can use the examples below to add.
+            // It's not that hard dude you probably better than me in C++ this should be a piece of cake to you.
+            new FosterPackerGZip().Register();
+            new FosterPackerDeflate().Register();
+            new FosterXmlParser().Register();
+            new FosterEncryptionAes().Register();
             // This code below auto-registers any parser/encryption/packer in HookLoc and GlobalHookLoc folder. They only have to be a DLL file and must include a class with Register
             // void that registers the said extension to FosterSettings.
             if (!skipFolder)
@@ -89,14 +95,7 @@ namespace Foster_Manager
                     }
                 }
             }
-            // NOTE: Add your own parsers, encryptions and packers below. You can use the examples below to add.
-            // It's not that hard dude you probably better than me in C++ this should be a piece of cake to you.
-            new FosterPackerGZip().Register();
-            new FosterPackerDeflate().Register();
-            new FosterXmlParser().Register();
-            new FosterEncryptionAes().Register();
         }
-
         private static void Main(string[] args)
         {
             bool skipFolder = args.Contains("--skip-addons") || args.Contains("-a");
@@ -108,7 +107,7 @@ namespace Foster_Manager
             HookParsersAndPackers(skipFolder, verbose);
             bool nologo = args.Contains("--no-logo") || args.Contains("-n");
 
-            if (!nologo) { Console.WriteLine("Foster Manager  Copyright (C) " + DateTime.Now.Year + "  " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info license'." + Environment.NewLine + "This software is protected with MIT License; type `info license' or 'info copyright' for details."); }
+            if (!nologo) { Console.WriteLine("Foster Manager | Copyright (C) " + DateTime.Now.Year + " " + Versioning.Dev + Environment.NewLine + "This program comes with ABSOLUTELY NO WARRANTY; for details type `info license'." + Environment.NewLine + "This software is protected with MIT License; type `info license' or 'info copyright' for details."); }
             if (verbose) { Console.WriteLine("Foster Initialize complete with " + FosterSettings.Parsers.Length + " parser(s) and " + FosterSettings.Packers.Length + " packer(s)."); }
             string fostermanName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
             if (args.Length <= 0 || args.Contains("--help") || args.Contains("help") || args.Contains("-h") || args.Contains("?") || args.Contains("/?"))
@@ -178,6 +177,8 @@ namespace Foster_Manager
                     Console.WriteLine("     -o [Output File] = Path to the output file.");
                     Console.WriteLine("     -p [Password] = Password of file.");
                     Console.WriteLine("     -q [Password] = New password of file.");
+                    Console.WriteLine("     -c [Argument] = Similar to -EncryptArgs");
+                    Console.WriteLine("     -EncryptArgs [Argument] = Argument to pass to encryption method.");
                 }
                 Console.WriteLine("change-packer [Path] [Format] [Options]                    Changes compression of a file.");
                 if (verbose)
@@ -192,12 +193,6 @@ namespace Foster_Manager
                     Console.WriteLine("     -o [Output File] = Path to the output file.");
                     Console.WriteLine("     -p [Password] = Password of file.");
                     Console.WriteLine("     -q [Password] = New password of file.");
-                }
-                Console.WriteLine("adelta [File Path] [Folder Path]                            Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
-                if (verbose)
-                {
-                    Console.WriteLine("[Folder Path] = Path of the folder to apply delta on.");
-                    Console.WriteLine("[File Path] = Path of the delta package that will be applied.");
                 }
                 Console.WriteLine("pack [Folder Path] [OPTIONS]                                Packs a folder into a Foster compatible package file.");
                 if (verbose)
@@ -220,6 +215,8 @@ namespace Foster_Manager
                     {
                         Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
                     }
+                    Console.WriteLine("     -c [Argument] = Similar to -EncryptArgs");
+                    Console.WriteLine("     -EncryptArgs [Argument] = Argument to pass to encryption method.");
                 }
                 Console.WriteLine("unpack [File Path] [OPTIONS]                                Packs a folder into a Foster compatible package file." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
@@ -250,8 +247,10 @@ namespace Foster_Manager
                     {
                         Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
                     }
+                    Console.WriteLine("     -c [Argument] = Similar to -EncryptArgs");
+                    Console.WriteLine("     -EncryptArgs [Argument] = Argument to pass to encryption method.");
                 }
-                Console.WriteLine("adelta [File Path] [Folder Path]                            Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
+                Console.WriteLine("adelta [File Path] [Folder Path] [OPTIONS]                  Applies a delta package." + (verbose ? "(Compression algorithm will be detected automatically.)" : ""));
                 if (verbose)
                 {
                     Console.WriteLine("[Folder Path] = Path of the folder to apply delta on.");
@@ -264,7 +263,7 @@ namespace Foster_Manager
                 if (verbose)
                 {
                     Console.WriteLine("[Folder] = Path to the folder of the Foster that will be updated.");
-                    Console.WriteLine("[URI] = Address of the Foster file on web. Can be minimalized (see https://github.com/Haltroy/HTAlt/tree/master/SHORTCUTS.md)");
+                    Console.WriteLine("[URI] = Address of the Foster file on web.");
                     Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
                     Console.WriteLine("     -a [Arch] = Similar to \"-Arch\".");
                     Console.WriteLine("     -Arch [Arch] = Current computer architecture (see documentation: https://github.com/Haltroy/Foster/tree/master/Foster%20Examples/Archs.md).");
@@ -283,7 +282,7 @@ namespace Foster_Manager
                 if (verbose)
                 {
                     Console.WriteLine("[Folder] = Path to the folder of the Foster that will be updated.");
-                    Console.WriteLine("[URI] = Address of the Foster file on web. Can be minimalized (see https://github.com/Haltroy/HTAlt/tree/master/SHORTCUTS.md)");
+                    Console.WriteLine("[URI] = Address of the Foster file on web.");
                     Console.WriteLine("[OPTIONS] = Additional arguments that can be used.");
                     Console.WriteLine("     -a [Arch] = Similar to \"-Arch\".");
                     Console.WriteLine("     -Arch [Arch] = Current computer architecture (see documentation: https://github.com/Haltroy/Foster/tree/master/Foster%20Examples/Archs.md).");
@@ -307,7 +306,7 @@ namespace Foster_Manager
                     Console.WriteLine("     -Source [Skeleton Foster file] = The name of the Skeleton Foster file, optional.");
                     Console.WriteLine("     --skip-empty-dirs = Skips the empty directories. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time and space.");
                     Console.WriteLine("     --skip-hashes = Skips the hash-checking part. Can be used as a boolean with \"true\", \"1\" and/or \"yes\" as enabling and \"false\", \"0\" and/or \"no\" as disabling. Not required but might save some time.");
-                    Console.WriteLine("     -p [Password] = Similar to \"-Password\" parameter.");
+                    Console.WriteLine("     -pass [Password] = Similar to \"-Password\" parameter.");
                     Console.WriteLine("     -Password [Password] = Password of file.");
                     Console.WriteLine("     -a [Algorithm] = Similar to \"-Algorithm\"");
                     Console.WriteLine("     -Algorithm [Algorithm] = The compression algorithm that will be used to compress the package files. Valid options are:");
@@ -327,6 +326,8 @@ namespace Foster_Manager
                     {
                         Console.WriteLine("          " + FosterSettings.Encryptions[i].EncryptionName + "(" + i + ") ");
                     }
+                    Console.WriteLine("     -c [Argument] = Similar to -EncryptArgs");
+                    Console.WriteLine("     -EncryptArgs [Argument] = Argument to pass to encryption method.");
                 }
                 return;
             }
@@ -379,7 +380,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 3) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string inputFile = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string outputFile = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
                     string algName = args[singleArgLoc + 3].ToLowerEnglish();
@@ -462,7 +463,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while converting, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while converting, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -475,7 +476,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 2) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string filePath = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string algName = args[singleArgLoc + 2].ToLowerEnglish();
                     var parseDone = int.TryParse(algName, out int algNo);
@@ -501,7 +502,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while packing, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while packing, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -514,7 +515,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 2) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string packFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     FosterEncryptionBase encryption = null;
                     string algName = args[singleArgLoc + 2].ToLowerEnglish();
@@ -633,7 +634,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while changing encryption, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while changing encryption, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -646,7 +647,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 2) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string packFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     FosterPackerBase packer = null;
                     string algName = args[singleArgLoc + 2].ToLowerEnglish();
@@ -744,7 +745,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while changing encryption, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while changing encryption, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -772,12 +773,12 @@ namespace Foster_Manager
                     }
                     else
                     {
-                        Console.WriteLine("Cannot clean temporary folder, no permission.");
+                        Console.Error.WriteLine("Cannot clean temporary folder, no permission.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while cleaning, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while cleaning, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -790,7 +791,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 1) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 1) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string packFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     System.IO.DirectoryInfo pfInfo = new System.IO.DirectoryInfo(packFolder);
                     string packFile = null;
@@ -826,7 +827,7 @@ namespace Foster_Manager
                             }
                             if (algorithm == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
                                 algorithm = FosterSettings.Packers[0];
                             }
                         }
@@ -848,7 +849,7 @@ namespace Foster_Manager
                             }
                             if (algorithm == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
                                 algorithm = FosterSettings.Packers[0];
                             }
                         }
@@ -871,7 +872,7 @@ namespace Foster_Manager
                             }
                             if (encryption == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
                                 encryption = FosterSettings.Encryptions[0];
                             }
                         }
@@ -893,7 +894,7 @@ namespace Foster_Manager
                             }
                             if (encryption == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
                                 encryption = FosterSettings.Encryptions[0];
                             }
                         }
@@ -955,7 +956,7 @@ namespace Foster_Manager
                     Console.WriteLine("Error while packing, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
-                if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
+                if (verbose) { Console.Error.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
             if (args.Contains("unpack"))
@@ -965,7 +966,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 1) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 1) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string unpackFile = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     System.IO.FileInfo ufInfo = new System.IO.FileInfo(unpackFile);
                     string unpackFolder = (args.Length <= singleArgLoc + 2) ? ufInfo.DirectoryName + System.IO.Path.DirectorySeparatorChar + System.IO.Path.GetFileNameWithoutExtension(unpackFile) + System.IO.Path.DirectorySeparatorChar : System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
@@ -1027,7 +1028,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while unpacking, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while unpacking, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -1040,7 +1041,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 2) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string cFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string bFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
                     System.IO.DirectoryInfo cfInfo = new System.IO.DirectoryInfo(cFolder);
@@ -1078,7 +1079,7 @@ namespace Foster_Manager
                             }
                             if (algorithm == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
                                 algorithm = FosterSettings.Packers[0];
                             }
                         }
@@ -1100,7 +1101,7 @@ namespace Foster_Manager
                             }
                             if (algorithm == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find a packer with name \"" + algName + "\". Using the default packer."); }
                                 algorithm = FosterSettings.Packers[0];
                             }
                         }
@@ -1123,7 +1124,7 @@ namespace Foster_Manager
                             }
                             if (encryption == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
                                 encryption = FosterSettings.Encryptions[0];
                             }
                         }
@@ -1145,7 +1146,7 @@ namespace Foster_Manager
                             }
                             if (encryption == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
                                 encryption = FosterSettings.Encryptions[0];
                             }
                         }
@@ -1203,7 +1204,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while creating delta, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while creating delta, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -1216,7 +1217,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 3) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string cFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string dFile = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
                     byte[] password = null;
@@ -1273,7 +1274,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while applying delta, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while applying delta, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -1286,7 +1287,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 2) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 2) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string sFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string oFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 2]);
                     string fosterFile = string.Empty;
@@ -1455,7 +1456,7 @@ namespace Foster_Manager
                             }
                             if (encryption == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
                                 encryption = FosterSettings.Encryptions[0];
                             }
                         }
@@ -1477,13 +1478,13 @@ namespace Foster_Manager
                             }
                             if (encryption == null)
                             {
-                                if (verbose) { Console.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
+                                if (verbose) { Console.Error.WriteLine("Couldn't find an encryption with name \"" + algName + "\". Using the default encryption."); }
                                 encryption = FosterSettings.Encryptions[0];
                             }
                         }
                     }
                     byte[] password = null;
-                    if (args.Contains("-p", StringComparer.InvariantCultureIgnoreCase) && password is null)
+                    if (args.Contains("-pass", StringComparer.InvariantCultureIgnoreCase) && password is null)
                     {
                         int algorithmIndex = Array.IndexOf(args, "-p");
                         if (args.Length >= algorithmIndex + 1)
@@ -1532,7 +1533,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while creating, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while creating, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -1545,7 +1546,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 3) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string curFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string verFile = System.IO.Path.Combine(curFolder, System.IO.Path.DirectorySeparatorChar + ".fosterman");
                     string uri = args[singleArgLoc + 2];
@@ -1684,7 +1685,7 @@ namespace Foster_Manager
                                     break;
 
                                 case LogLevel.Error:
-                                    Console.WriteLine(" [E] " + e.LogEntry);
+                                    Console.Error.WriteLine(" [E]" + e.LogEntry);
                                     break;
 
                                 case LogLevel.Critical:
@@ -1710,7 +1711,7 @@ namespace Foster_Manager
                     {
                         if (Tools.ToLowerEnglish(Console.ReadLine()) != "y")
                         {
-                            Console.WriteLine("Canceled.");
+                            Console.Error.WriteLine("Canceled.");
                             return;
                         }
                     }
@@ -1727,7 +1728,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while updating, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while updating, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -1740,7 +1741,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 3) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 3) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string curFolder = System.IO.Path.GetFullPath(args[singleArgLoc + 1]);
                     string verFile = System.IO.Path.Combine(curFolder, System.IO.Path.DirectorySeparatorChar + ".fosterman");
                     string uri = args[singleArgLoc + 2];
@@ -1878,7 +1879,7 @@ namespace Foster_Manager
                                     break;
 
                                 case LogLevel.Error:
-                                    Console.WriteLine(" [E] " + e.LogEntry);
+                                    Console.Error.WriteLine(" [E]" + e.LogEntry);
                                     break;
 
                                 case LogLevel.Critical:
@@ -1905,7 +1906,7 @@ namespace Foster_Manager
                     {
                         if (Tools.ToLowerEnglish(Console.ReadLine()) != "y")
                         {
-                            Console.WriteLine("Canceled.");
+                            Console.Error.WriteLine("Canceled.");
                             return;
                         }
                     }
@@ -1922,7 +1923,7 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while installing, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while installing, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
@@ -1935,7 +1936,7 @@ namespace Foster_Manager
                 sw.Start();
                 try
                 {
-                    if (args.Length < singleArgLoc + 1) { Console.WriteLine(" [E] Not enough information."); return; }
+                    if (args.Length < singleArgLoc + 1) { Console.Error.WriteLine(" [E] Not enough information."); return; }
                     string uri = args[singleArgLoc + 1];
                     var foster = new Foster()
                     {
@@ -1985,7 +1986,7 @@ namespace Foster_Manager
                                     break;
 
                                 case LogLevel.Error:
-                                    Console.WriteLine(" [E] " + e.LogEntry);
+                                    Console.Error.WriteLine(" [E]" + e.LogEntry);
                                     break;
 
                                 case LogLevel.Critical:
@@ -2058,13 +2059,13 @@ namespace Foster_Manager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error while getting information, exception caught:" + ex.ToString());
+                    Console.Error.WriteLine("Error while getting information, exception caught:" + ex.ToString());
                 }
                 sw.Stop();
                 if (verbose) { Console.WriteLine(fostermanName + " " + string.Join(' ', args) + " in " + sw.ElapsedMilliseconds + " ms."); }
                 return;
             }
-            Console.WriteLine(" [E] Unknown command, please use help command to see all supported commands.");
+            Console.Error.WriteLine(" [E] Unknown command, please use help command to see all supported commands.");
         }
     }
 }

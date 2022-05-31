@@ -14,14 +14,6 @@
   </PropertyGroup>
 
 	<ItemGroup>
-    <ProjectReference Include="..\Foster\Foster.csproj" />
-    <ProjectReference Include="..\Modules\FosterCryptAes\FosterCryptAes.csproj" />
-    <ProjectReference Include="..\Modules\FosterPackerDeflate\FosterPackerDeflate.csproj" />
-    <ProjectReference Include="..\Modules\FosterPackerGZip\FosterPackerGZip.csproj" />
-    <ProjectReference Include="..\Modules\FosterParserXml\FosterParserXml.csproj" />
-  </ItemGroup>
-
-	<ItemGroup>
 	  <Compile Update="Properties\Resources.Designer.cs">
 	    <DesignTime>True</DesignTime>
 	    <AutoGen>True</AutoGen>
@@ -34,6 +26,14 @@
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Foster" Version="2.0.0" />
+	  <PackageReference Include="FosterCryptAes" Version="1.0.0" />
+	  <PackageReference Include="FosterPackerDeflate" Version="1.0.0" />
+	  <PackageReference Include="FosterPackerGzip" Version="1.0.0" />
+	  <PackageReference Include="FosterParserXml" Version="1.0.0" />
 	</ItemGroup>
 
 </Project>
