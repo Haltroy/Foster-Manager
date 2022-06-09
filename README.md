@@ -23,7 +23,7 @@ A command-line tool for managing [`Foster`](https://github.com/haltroy/Foster).
 Foster Manager can be installed by package managers (see [this](https://github.com/Haltroy/Foster-Manager/blob/master/INSTALL.md)) or can be used in a folder without installing it.
 
 - .NET Core 3.1 supported machine (see [this document](https://github.com/dotnet/core/blob/main/release-notes/3.1/3.1-supported-os.md))
-  - NOTE: The Official Document for .NET Core 3.1 might not include every operating system (such as Arch Linux), in order to learn if you operating system supports it or not, search on the internet (for example, I learned that Arch Linux supports .NET Core 3.1 by just typing `dotnet arch` into Google.)
+  - NOTE: The Official Document for .NET Core 3.1 might not include every operating system (such as Arch Linux), in order to learn if you operating system supports it or not, search on the Internet (for example, I learned that Arch Linux supports .NET Core 3.1 by just typing `dotnet arch` into Google.)
 - .NET Core 3.1 or newer installed on machine (required only for framework-dependent packages)
 
 ## Development
@@ -34,7 +34,7 @@ For now, Foster Manager needs the source code of Foster. So put the Foster sourc
 
 If you dualboot your system with 2 completely different operating systems (ex. Windows 1x & any GNU/Linux distribution), please execute the [`cleanup.py`](https://github.com/Haltroy/haltroy/blob/main/tools/cleanup.py) Python script before development. This will fix most of the problems with OmniSharp.
 
-If you are a package manager maintainer for an operationg system, feel free to create them. Just don't forget to check the `Program.cs` file first and put the upstream link so your users can contact me about anything. Thanks.
+If you are a package manager maintainer for an operating system, feel free to create them. Just don't forget to check the `Program.cs` file first and put the upstream link so your users can contact me about anything. Thanks.
 
 You can use the [`publish.py`](https://github.com/Haltroy/haltroy/blob/main/tools/publish.py) Python script to auto-build for all architectures or just some of them.
 
@@ -79,5 +79,5 @@ Here's a list of all options:
 | --------------------------------------------------------------------------- | ----------- | ------------- | ------------------ | ---------------- |
 | [`master`](https://github.com/haltroy/Foster-Manager)                       | Main branch | .NET Core 3.1 | Main               | -                |
 | `2.0.0.1`                                                                   | 2.0         | .NET Core 3.1 | _In Development_   | 2022             |
-| [`2.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/2.0.0.0) | 2.0         | .NET Core 3.1 | **Latest Release** | 31 May 2022      |
+| [`2.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/2.0.0.0) | 2.0         | .NET Core 3.1 | **Latest Release** | 1 June 2022      |
 | [`1.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0) | 1.0         | .NET Core 3.1 | Unsupported        | 31 December 2021 |

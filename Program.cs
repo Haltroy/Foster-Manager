@@ -28,7 +28,58 @@ namespace Foster_Manager
         {
             public static string Version => "2.0.0.0"; // <-- DO NOT CHANGE THIS
             public static string Dev => "haltroy"; // <-- Change this
-            public static string Arch => "noarch"; // <-- Change this
+            public static string Arch // <-- DO NOT CHANGE THIS
+            {
+            	get {
+            	string osName = "";
+            string osVer = "";
+            string osArch = "";
+
+            var os = System.Environment.OSVersion;
+
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                osName = "win";
+                osVer = os.Version.ToString();
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.FreeBSD))
+            {
+                osName = "freebsd";
+                osVer = os.Version.ToString();
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                osName = "linux";
+                osVer = os.Version.ToString();
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            {
+                osName = "osx";
+                osVer = os.Version.ToString();
+            }
+
+            switch (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture)
+            {
+                case System.Runtime.InteropServices.Architecture.X86:
+                    osArch = "x86";
+                    break;
+
+                case System.Runtime.InteropServices.Architecture.X64:
+                    osArch = "x64";
+                    break;
+
+                case System.Runtime.InteropServices.Architecture.Arm:
+                    osArch = "arm";
+                    break;
+
+                case System.Runtime.InteropServices.Architecture.Arm64:
+                    osArch = "arm64";
+                    break;
+            }
+
+            return (string.IsNullOrWhiteSpace(osName) ? "" : osName) + (string.IsNullOrWhiteSpace(osVer) ? "" : "-" + osVer + "-") + osArch;
+            }
+            }
         }
 
         private static string HookLoc => System.IO.Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fosterman" + System.IO.Path.DirectorySeparatorChar + "hooks");
@@ -96,6 +147,7 @@ namespace Foster_Manager
                 }
             }
         }
+
         private static void Main(string[] args)
         {
             bool skipFolder = args.Contains("--skip-addons") || args.Contains("-a");
@@ -493,11 +545,15 @@ namespace Foster_Manager
                     {
                         throw new Exception("Couldn't find a parser with name \"" + algName + "\".");
                     }
-                    HeaderContext header = new HeaderContext(new Foster(), null, parser, null, null);
+                    var tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "fosterman-empty");
+                    if (System.IO.Directory.Exists(tempDir)) { System.IO.Directory.Delete(tempDir, true); }
+                    System.IO.Directory.CreateDirectory(tempDir);
+                    HeaderContext header = new HeaderContext(new Foster("", "", tempDir), null, parser, null, new byte[0]);
                     using (var fStr = new System.IO.FileStream(filePath, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
                     {
                         Foster.Write(header, fStr);
                     }
+                    System.IO.Directory.Delete(tempDir, true);
                     if (verbose) { Console.WriteLine("Created successfully."); }
                 }
                 catch (Exception ex)

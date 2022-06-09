@@ -5,9 +5,10 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Foster_Manager</RootNamespace>
     <AssemblyName>fosterman</AssemblyName>
+	<InvariantGlobalization>true</InvariantGlobalization>
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
+    <SelfContained>true</SelfContained> 
     <PublishTrimmed>true</PublishTrimmed>
     <!-- <PublishReadyToRun>true</PublishReadyToRun> -->
     <DebugType>embedded</DebugType>
@@ -28,8 +29,8 @@
 	  </EmbeddedResource>
 	</ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="Foster" Version="2.0.0" />
+	<ItemGroup>	  
+	  <PackageReference Include="Foster" Version="2.0.0.1" />
 	  <PackageReference Include="FosterCryptAes" Version="1.0.0" />
 	  <PackageReference Include="FosterPackerDeflate" Version="1.0.0" />
 	  <PackageReference Include="FosterPackerGzip" Version="1.0.0" />
