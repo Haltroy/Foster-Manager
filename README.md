@@ -79,5 +79,5 @@ Here's a list of all options:
 | --------------------------------------------------------------------------- | ----------- | ------------- | ------------------ | ---------------- |
 | [`master`](https://github.com/haltroy/Foster-Manager)                       | Main branch | .NET Core 3.1 | Main               | -                |
 | `2.0.0.1`                                                                   | 2.0         | .NET Core 3.1 | _In Development_   | 2022             |
-| [`2.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/2.0.0.0) | 2.0         | .NET Core 3.1 | **Latest Release** | 1 June 2022      |
+| [`2.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/2.0.0.0) | 2.0.0.1     | .NET Core 3.1 | **Latest Release** | 10 June 2022     |
 | [`1.0.0.0`](https://github.com/Haltroy/Foster-Manager/releases/tag/1.0.0.0) | 1.0         | .NET Core 3.1 | Unsupported        | 31 December 2021 |
